@@ -87,6 +87,7 @@ h1{font-size:clamp(1.5rem,3.5vw,2.1rem);margin:0;font-weight:800;letter-spacing:
 .legend span{display:inline-flex;align-items:center;gap:.35rem;color:var(--ink-2)}
 .legend .sw{width:.85rem;height:.28rem;border-radius:.14rem;background:var(--c)}
 .legend .sw.line{background:none;border-top:2px dashed var(--price);height:0;width:1rem}
+.legend .sw.dash{background:none;border-top:2px dashed var(--c);height:0;width:1.1rem;border-radius:0}
 svg{display:block;width:100%;height:auto;overflow:visible}
 .axis{font-family:"IBM Plex Mono",monospace;font-size:10px;fill:var(--muted)}
 .gridline{stroke:var(--grid);stroke-width:1}
@@ -149,7 +150,7 @@ footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--rule);color:v
 
 <div class="chartcard">
   <div class="chead">
-    <div><h3>LP vs HOLD</h3><div class="hint" id="lph-hint">per-share vault value vs holding the inception basket &middot; indexed to 100</div></div>
+    <div><h3>LP vs HOLD</h3><div class="hint" id="lph-hint">per-share vault value vs holding 100% of either token &middot; indexed to 100</div></div>
   </div>
   <div class="legend" id="lph-legend"></div>
   <div id="lph-chart"></div>
@@ -419,17 +420,21 @@ function renderLpHold(arms){
   const vps0=p=>p.supply>0?(((p.a0+p.idle0)+(p.a1+p.idle1)*p.priceT1inT0)/p.supply):null;
   const idx=arms.map(v=>{const s=v.series.filter(p=>p.supply>0);const base=s.length?vps0(s[0])||1:1;
     return s.map(p=>({ts:p.ts,val:vps0(p)/base*100}));});
-  // HOLD: freeze the inception per-share basket (h0,h1) of the longest-lived arm, mark it to spot
+  // HOLD benchmarks: 100% token0 (flat in token0 terms) and 100% token1 (tracks the price),
+  // both over the longest-lived arm's timeline, indexed to 100 at its start
   let ref=arms[0];arms.forEach(v=>{if(v.series.length>ref.series.length)ref=v;});
-  const rs=ref.series.filter(p=>p.supply>0); let hold=[];
-  if(rs.length){const f=rs[0];const h0=(f.a0+f.idle0)/f.supply,h1=(f.a1+f.idle1)/f.supply;
-    const base=(h0+h1*f.priceT1inT0)||1;
-    hold=rs.map(p=>({ts:p.ts,val:(h0+h1*p.priceT1inT0)/base*100}));}
+  const rs=ref.series.filter(p=>p.supply>0); let hold0=[],hold1=[];
+  if(rs.length){const f=rs[0];
+    hold0=rs.map(p=>({ts:p.ts,val:100}));
+    hold1=rs.map(p=>({ts:p.ts,val:p.priceT1inT0/(f.priceT1inT0||1)*100}));}
+  const t0n=curPair.split('/')[0]||'token0', t1n=curPair.split('/')[1]||'token1';
+  const holds=[{label:'HOLD '+t0n,color:cssv('--muted'),dash:'2 3',curve:hold0},
+               {label:'HOLD '+t1n,color:cssv('--price'),dash:'6 4',curve:hold1}];
   let lo=Infinity,hi=-Infinity;
   const fold=a=>{let before=null,after=null;
     a.forEach(p=>{if(p.ts>=t0&&p.ts<=t1){lo=Math.min(lo,p.val);hi=Math.max(hi,p.val);}else if(p.ts<t0)before=p;else if(after===null)after=p;});
     [before,after].forEach(p=>{if(p){lo=Math.min(lo,p.val);hi=Math.max(hi,p.val);}});};
-  idx.forEach(fold); fold(hold);
+  idx.forEach(fold); fold(hold0); fold(hold1);
   if(!isFinite(lo)){lo=100;hi=100;}
   const pad=(hi-lo)*0.08||1;lo-=pad;hi+=pad;
   const svg=svgEl();
@@ -437,18 +442,18 @@ function renderLpHold(arms){
     svg.appendChild(mk('line',{class:'gridline',x1:PADL,x2:W-PADR,y1:y,y2:y,stroke:g===100?cssv('--muted'):undefined,'stroke-dasharray':g===100?'3 3':'0'}));
     const tx=mk('text',{class:'axis',x:PADL-6,y:y+3,'text-anchor':'end'});tx.textContent=g.toFixed(1);svg.appendChild(tx);});
   dateTicks(t0,t1,6).forEach(t=>{const x=xscale(t,t0,t1);const tx=mk('text',{class:'axis',x:x,y:H-8,'text-anchor':'middle'});tx.textContent=new Date(t*1000).toISOString().slice(5,10);svg.appendChild(tx);});
-  if(hold.length){let d='';hold.forEach((p,k)=>{const x=xscale(p.ts,t0,t1),y=yscale(p.val,lo,hi);d+=(k?'L':'M')+x+','+y+' ';});
-    svg.appendChild(mk('path',{d,fill:'none',stroke:cssv('--price'),'stroke-width':2,'stroke-dasharray':'6 4','clip-path':'url(#plot)'}));
-    const last=hold[hold.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last.val,lo,hi),r:3,fill:cssv('--price')}));}
+  holds.forEach(hn=>{ if(!hn.curve.length)return;
+    let d='';hn.curve.forEach((p,k)=>{const x=xscale(p.ts,t0,t1),y=yscale(p.val,lo,hi);d+=(k?'L':'M')+x+','+y+' ';});
+    svg.appendChild(mk('path',{d,fill:'none',stroke:hn.color,'stroke-width':1.5,'stroke-dasharray':hn.dash,'clip-path':'url(#plot)'}));
+    const last=hn.curve[hn.curve.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last.val,lo,hi),r:2.5,fill:hn.color}));});
   idx.forEach((a,i)=>{const c=cssv(C[i%4]);let d='';a.forEach((p,k)=>{const x=xscale(p.ts,t0,t1),y=yscale(p.val,lo,hi);d+=(k?'L':'M')+x+','+y+' ';});
     svg.appendChild(mk('path',{d,fill:'none',stroke:c,'stroke-width':2,'clip-path':'url(#plot)'}));
     const last=a[a.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last.val,lo,hi),r:3,fill:c}));});
-  attachHover(svg,arms,t0,t1,lo,hi,'perf',idx,{label:'HOLD',color:cssv('--price'),curve:hold});
+  attachHover(svg,arms,t0,t1,lo,hi,'perf',idx,holds);
   host.appendChild(svg);
   leg.innerHTML=arms.map((v,i)=>`<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel} LP</span>`).join('')
-    +`<span style="--c:${cssv('--price')}"><span class="sw line"></span>HOLD</span>`;
-  const t0n=(curPair.split('/')[0]||'token0');
-  hint.innerHTML=`per-share vault value in ${t0n} vs holding the inception basket &middot; indexed to 100 &middot; LP&minus;HOLD gap = fees + compounding &minus; divergence &amp; rebalance cost`;
+    +holds.map(hn=>`<span style="--c:${hn.color}"><span class="sw dash"></span>${hn.label}</span>`).join('');
+  hint.innerHTML=`per-share vault value in ${t0n} &middot; vs holding 100% ${t0n} (flat) or 100% ${t1n} (tracks price) &middot; indexed to 100`;
 }
 
 // crosshair + tooltip shared
@@ -474,8 +479,9 @@ function attachHover(svg,arms,t0,t1,lo,hi,kind,idx,extra){
     } else {
       arms.forEach((vv,i)=>{const a=idx[i];if(!a||!a.length)return;let bi=0;a.forEach((p,k)=>{if(Math.abs(p.ts-t)<Math.abs(a[bi].ts-t))bi=k;});
         const g=a[bi].val-100;rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${cssv(C[i%4])}"></span>${vv._arm.wlabel}</span><span class="v">${(g>=0?'+':'')+g.toFixed(2)}%</span></div>`;});
-      if(extra&&extra.curve&&extra.curve.length){const a=extra.curve;let bi=0;a.forEach((p,k)=>{if(Math.abs(p.ts-t)<Math.abs(a[bi].ts-t))bi=k;});
-        const g=a[bi].val-100;rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${extra.color}"></span>${extra.label}</span><span class="v">${(g>=0?'+':'')+g.toFixed(2)}%</span></div>`;}
+      (Array.isArray(extra)?extra:(extra?[extra]:[])).forEach(ex=>{ if(!ex.curve||!ex.curve.length)return;
+        const a=ex.curve;let bi=0;a.forEach((p,k)=>{if(Math.abs(p.ts-t)<Math.abs(a[bi].ts-t))bi=k;});
+        const g=a[bi].val-100;rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${ex.color}"></span>${ex.label}</span><span class="v">${(g>=0?'+':'')+g.toFixed(2)}%</span></div>`;});
     }
     const dt=new Date(t*1000).toISOString().slice(0,16).replace('T',' ');
     tip.innerHTML=`<div class="t-date">${dt} UTC</div>${rows}`;
