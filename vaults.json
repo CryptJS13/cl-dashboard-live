@@ -1,0 +1,142 @@
+[
+  {
+    "id": "aeroCL_tBTC_cbBTC_new",
+    "vault": "0xF83648Df279004CdcEee1bEE3a92b9194Cd3b94E",
+    "pool": "0x138aceE5573fA09e7F215965ff60898cc33c6330",
+    "pair": "cbBTC",
+    "platform": "tBTC/cbBTC - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_cbETH_ETH_new",
+    "vault": "0xF1d5630B646E2D3AfC1fC31F057df349620F48eC",
+    "pool": "0x47cA96Ea59C13F72745928887f84C9F52C3D7348",
+    "pair": "cbETH",
+    "platform": "cbETH/ETH - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_WETH_cbBTC_4w",
+    "vault": "0x83BD3E5688b0d52762A7c6D9b164C4F5A1Fe4DFb",
+    "pool": "0x70aCDF2Ad0bf2402C957154f944c19Ef4e1cbAE1",
+    "pair": "cbBTC",
+    "platform": "WETH/cbBTC 4.08% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_WETH_cbBTC_8w",
+    "vault": "0x259795BD463b4B3C6683F3bB7A7760dAC85770E4",
+    "pool": "0x70aCDF2Ad0bf2402C957154f944c19Ef4e1cbAE1",
+    "pair": "cbBTC",
+    "platform": "WETH/cbBTC 8.33% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_WETH_cbBTC_16w",
+    "vault": "0x58bfF80948b11F76066223cdF0B4956c5A584f3a",
+    "pool": "0x70aCDF2Ad0bf2402C957154f944c19Ef4e1cbAE1",
+    "pair": "cbBTC",
+    "platform": "WETH/cbBTC 17.35% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_AAPLc_60",
+    "vault": "0x28365BE1308838a71Fb4D36281EFeE141819e448",
+    "pool": "0xA3b1E3f9747065e2073722Ff4c9027d3eA4994F0",
+    "pair": "AAPLc",
+    "platform": "USDC/AAPLc 6.18% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_AAPLc_120",
+    "vault": "0x4106bC8e6446EC6566eA9E9B9a3e4BbC6d2b4d3f",
+    "pool": "0xA3b1E3f9747065e2073722Ff4c9027d3eA4994F0",
+    "pair": "AAPLc",
+    "platform": "USDC/AAPLc 12.75% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_AAPLc_240",
+    "vault": "0x21DFa5e1486BFe8D725f11D59B32B908e783FF36",
+    "pool": "0xA3b1E3f9747065e2073722Ff4c9027d3eA4994F0",
+    "pair": "AAPLc",
+    "platform": "USDC/AAPLc 27.12% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_AAPLc_20",
+    "vault": "0xd7D53a0E4b5d0857D84cA8dff334C185F0ff78a3",
+    "pool": "0xA3b1E3f9747065e2073722Ff4c9027d3eA4994F0",
+    "pair": "AAPLc",
+    "platform": "USDC/AAPLc 2.02% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_GOOGLc_20",
+    "vault": "0x07c8Fa4deeaA17C54381bAfB312e8a94da2Fb243",
+    "pool": "0xB1987CAD1682841b4b641d50E520777eC5Ab5542",
+    "pair": "GOOGLc",
+    "platform": "USDC/GOOGLc 2.02% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_GOOGLc_40",
+    "vault": "0xa3D714a241e9D2F52DbBE90D9b6D44595A845852",
+    "pool": "0xB1987CAD1682841b4b641d50E520777eC5Ab5542",
+    "pair": "GOOGLc",
+    "platform": "USDC/GOOGLc 4.08% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_GOOGLc_80",
+    "vault": "0x8396bD130C519F7Dc2B00079D69Ee4563d343641",
+    "pool": "0xB1987CAD1682841b4b641d50E520777eC5Ab5542",
+    "pair": "GOOGLc",
+    "platform": "USDC/GOOGLc 8.33% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_METAc_20",
+    "vault": "0xbceb64f40c503739019091f0A561b377AB1041EF",
+    "pool": "0xEAF57753BC382E0324a1D43F72E7027705a2273E",
+    "pair": "METAc",
+    "platform": "USDC/METAc 2.02% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_METAc_40",
+    "vault": "0xD60B6ce9D04668ba13a505170a97808DA6Ba9D80",
+    "pool": "0xEAF57753BC382E0324a1D43F72E7027705a2273E",
+    "pair": "METAc",
+    "platform": "USDC/METAc 4.08% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_METAc_80",
+    "vault": "0xe893A09Dd4a0d9429389de4A3B74f7e9Fe820B62",
+    "pool": "0xEAF57753BC382E0324a1D43F72E7027705a2273E",
+    "pair": "METAc",
+    "platform": "USDC/METAc 8.33% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_NVDAc_20",
+    "vault": "0x10882A14EfC2320650D29e221051ffc7864d477E",
+    "pool": "0x853F5f1B92b16714Fe6CDA67CAad0856B83C7ab9",
+    "pair": "NVDAc",
+    "platform": "USDC/NVDAc 2.02% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_NVDAc_40",
+    "vault": "0x7D46B4Dd91975055eC7267FDfAEbd39a1071D0aa",
+    "pool": "0x853F5f1B92b16714Fe6CDA67CAad0856B83C7ab9",
+    "pair": "NVDAc",
+    "platform": "USDC/NVDAc 4.08% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_USDC_NVDAc_80",
+    "vault": "0x16ddd4e78dF104ac9da7e2aaC57C999d03Eed635",
+    "pool": "0x853F5f1B92b16714Fe6CDA67CAad0856B83C7ab9",
+    "pair": "NVDAc",
+    "platform": "USDC/NVDAc 8.33% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_EURC_USDC_1w",
+    "vault": "0x9B63f58d50Cd8Eb840a274ee14B82D1404f7e59D",
+    "pool": "0xE846373C1a92B167b4E9cd5d8E4d6B1Db9E90EC7",
+    "pair": "EURC",
+    "platform": "EURC/USDC 0.50% - Aero Automated CL"
+  },
+  {
+    "id": "aeroCL_EURC_USDC_2w",
+    "vault": "0x13Cb63533ad04714f59DAf23be15655ed1B76b58",
+    "pool": "0xE846373C1a92B167b4E9cd5d8E4d6B1Db9E90EC7",
+    "pair": "EURC",
+    "platform": "EURC/USDC 1.00% - Aero Automated CL"
+  }
+]

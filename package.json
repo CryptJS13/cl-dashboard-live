@@ -1,0 +1,12 @@
+{
+  "name": "cl-vault-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Live monitor for Harvest Aerodrome CL vaults on Base",
+  "engines": { "node": ">=18" },
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "ethers": "^5.8.0",
+    "express": "^4.21.0"
+  }
+}

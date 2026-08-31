@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CL Vault Monitor</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --surface-2:#f4f6f8; --rule:#dfe4ea; --rule-2:#ebeef2;
+  --ink:#12161c; --ink-2:#414a55; --muted:#6b7480;
+  --accent:#0f6d80;
+  --up:#0f7a4d; --up-soft:#e2f0e8; --down:#b23b2b; --down-soft:#f7e6e2;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --price:#5b6572; --band-a:0.10;
+  --grid:#e6eaee; --crosshair:#9aa4b0;
+  --shadow:0 1px 2px rgba(18,22,28,.05),0 10px 30px -16px rgba(18,22,28,.2);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b0e12; --surface:#141a20; --surface-2:#1a212a; --rule:#28313b; --rule-2:#212a33;
+  --ink:#e9edf1; --ink-2:#bcc6d0; --muted:#8592a0;
+  --accent:#3fb6c9;
+  --up:#5fc292; --up-soft:#12281c; --down:#e5897d; --down-soft:#361a14;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --price:#8c96a3; --band-a:0.16;
+  --grid:#232c35; --crosshair:#5b6675;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 34px -18px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+  --bg:#0b0e12; --surface:#141a20; --surface-2:#1a212a; --rule:#28313b; --rule-2:#212a33;
+  --ink:#e9edf1; --ink-2:#bcc6d0; --muted:#8592a0; --accent:#3fb6c9;
+  --up:#5fc292; --up-soft:#12281c; --down:#e5897d; --down-soft:#361a14;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --price:#8c96a3; --band-a:0.16; --grid:#232c35; --crosshair:#5b6675;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 34px -18px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:70rem;margin:0 auto;padding:2rem 1.2rem 5rem}
+.mono{font-family:"IBM Plex Mono",monospace} h1,h2,h3{font-family:"Archivo",sans-serif}
+header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;border-bottom:1px solid var(--rule);padding-bottom:1.2rem;margin-bottom:1.3rem}
+.eyebrow{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 .4rem}
+h1{font-size:clamp(1.5rem,3.5vw,2.1rem);margin:0;font-weight:800;letter-spacing:-.02em}
+.gen{font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:var(--muted);text-align:right}
+.hstats{display:flex;align-items:flex-end;gap:1.4rem}
+.tvl{text-align:right}
+.tvl .n{font-family:"Archivo",sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+.tvl .l{display:block;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:.3rem}
+
+.pairs{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.4rem}
+.pill{font-family:"IBM Plex Sans",sans-serif;font-size:.83rem;font-weight:500;padding:.4rem .8rem;border-radius:.45rem;border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);cursor:pointer;transition:all .12s}
+.pill:hover{border-color:var(--accent);color:var(--ink)}
+.pill[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .pill[aria-pressed="true"],:root:not([data-theme="light"]) .pill[aria-pressed="true"]{color:#06222a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill[aria-pressed="true"]{color:#06222a}}
+
+.zoombar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin:-.3rem 0 1.3rem}
+.zoombar .zl{color:var(--muted);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+.zpills{display:flex;gap:.3rem}
+.zoombar .zhint{color:var(--muted);font-size:.74rem;margin-left:auto}
+@media (max-width:640px){.zoombar .zhint{display:none}}
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));gap:.55rem;margin-bottom:1.5rem}
+.mcard{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--arm);border-radius:.5rem;padding:.7rem .8rem;box-shadow:var(--shadow)}
+.mcard .arm{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--arm);font-weight:600;margin-bottom:.35rem;display:flex;align-items:center;gap:.35rem}
+.dot{width:.6rem;height:.6rem;border-radius:.15rem;background:var(--arm);flex:none}
+.mcard .big{font-family:"Archivo",sans-serif;font-size:1.4rem;font-weight:700;letter-spacing:-.02em;line-height:1}
+.mcard .big.up{color:var(--up)} .mcard .big.down{color:var(--down)}
+.mcard .apr{font-family:"IBM Plex Mono",monospace;font-size:.82rem;font-weight:600;margin-top:.2rem}
+.mcard .apr.up{color:var(--up)} .mcard .apr.down{color:var(--down)}
+.mcard .apr .lbl{color:var(--muted);font-weight:400;font-size:.7rem}
+.mcard .sub{font-size:.72rem;color:var(--muted);margin-top:.3rem;line-height:1.5}
+.mcard .sub b{color:var(--ink-2);font-weight:600;font-variant-numeric:tabular-nums}
+
+.chartcard{background:var(--surface);border:1px solid var(--rule);border-radius:.6rem;padding:1rem 1.1rem 1.1rem;margin-bottom:1.1rem;box-shadow:var(--shadow)}
+.chead{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.6rem;margin-bottom:.2rem}
+.chead h3{font-size:1rem;margin:0;font-weight:700;letter-spacing:-.01em}
+.chead .hint{font-size:.78rem;color:var(--muted)}
+.toggles{display:flex;gap:.3rem;flex-wrap:wrap}
+.tg{font-size:.74rem;padding:.28rem .55rem;border-radius:.35rem;border:1px solid var(--rule);background:var(--surface-2);color:var(--muted);cursor:pointer}
+.tg[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tg[aria-pressed="true"]{color:#06222a}}
+:root[data-theme="dark"] .tg[aria-pressed="true"]{color:#06222a}
+.legend{display:flex;flex-wrap:wrap;gap:.8rem;margin:.5rem 0 .2rem;font-size:.78rem}
+.legend span{display:inline-flex;align-items:center;gap:.35rem;color:var(--ink-2)}
+.legend .sw{width:.85rem;height:.28rem;border-radius:.14rem;background:var(--c)}
+.legend .sw.line{background:none;border-top:2px dashed var(--price);height:0;width:1rem}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.axis{font-family:"IBM Plex Mono",monospace;font-size:10px;fill:var(--muted)}
+.gridline{stroke:var(--grid);stroke-width:1}
+.tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--rule);border-radius:.4rem;padding:.5rem .6rem;font-size:.75rem;box-shadow:var(--shadow);z-index:20;opacity:0;transition:opacity .08s;max-width:15rem}
+.tip .t-date{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:.68rem;margin-bottom:.3rem}
+.tip .t-row{display:flex;justify-content:space-between;gap:.9rem;font-variant-numeric:tabular-nums}
+.tip .t-row .k{display:inline-flex;align-items:center;gap:.3rem;color:var(--ink-2)}
+.tip .t-row .k .sw{width:.55rem;height:.55rem;border-radius:.12rem;background:var(--c)}
+.tip .t-row .v{font-family:"IBM Plex Mono",monospace;color:var(--ink);font-weight:500}
+footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--rule);color:var(--muted);font-size:.78rem;line-height:1.6}
+.empty{padding:2.5rem 1rem;text-align:center;color:var(--muted);font-size:.9rem}
+.etable{max-height:21rem;overflow:auto;border:1px solid var(--rule);border-radius:.45rem}
+.etable table{width:100%;border-collapse:collapse;font-size:.8rem}
+.etable th{position:sticky;top:0;background:var(--surface-2);text-align:right;padding:.45rem .65rem;font-size:.66rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule);white-space:nowrap}
+.etable th:nth-child(-n+3),.etable td:nth-child(-n+3){text-align:left}
+.etable td{padding:.38rem .65rem;text-align:right;border-bottom:1px solid var(--rule-2);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.etable tr:last-child td{border-bottom:none}
+.etable .kind{font-weight:600;display:inline-flex;align-items:center;gap:.3rem}
+.etable .armdot{width:.55rem;height:.55rem;border-radius:.12rem;display:inline-block}
+.etable .pos{color:var(--up)} .etable .neg{color:var(--down)} .etable .mut{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <p class="eyebrow">Aerodrome Slipstream &middot; Base</p>
+    <h1>CL Vault Monitor</h1>
+  </div>
+  <div class="hstats">
+    <div class="tvl"><span class="n" id="tvl">&ndash;</span><span class="l" id="tvl-l">total TVL</span></div>
+    <div class="gen" id="gen"></div>
+  </div>
+</header>
+<div class="pairs" id="pairs"></div>
+<div class="metrics" id="metrics"></div>
+<div class="zoombar">
+  <span class="zl">Timeframe</span>
+  <div class="zpills" id="zpresets"></div>
+  <span class="zhint">scroll to zoom &middot; drag to pan &middot; double-click to reset</span>
+</div>
+
+<div class="chartcard">
+  <div class="chead">
+    <div><h3>Price &amp; vault ranges</h3><div class="hint" id="price-hint"></div></div>
+  </div>
+  <div class="legend" id="price-legend"></div>
+  <div id="price-chart"></div>
+</div>
+
+<div class="chartcard">
+  <div class="chead">
+    <div><h3>Performance</h3><div class="hint">indexed to 100 at each vault's start</div></div>
+    <div class="toggles" id="denoms"></div>
+  </div>
+  <div class="legend" id="perf-legend"></div>
+  <div id="perf-chart"></div>
+</div>
+
+<div class="chartcard">
+  <div class="chead">
+    <div><h3>Realised income &amp; cost</h3><div class="hint" id="econ-hint">per-event, cumulative &middot; performance = income + cost (cost is negative)</div></div>
+    <div class="toggles" id="econ-metric"></div>
+  </div>
+  <div class="legend" id="econ-legend"></div>
+  <div id="econ-chart"></div>
+</div>
+
+<div class="chartcard">
+  <div class="chead"><div><h3>Events</h3><div class="hint">rebalances &amp; harvests &middot; value in the pair's token0</div></div></div>
+  <div id="events-table"></div>
+</div>
+
+<footer id="foot"></footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const DATA = /*__DATA__*/ {"vaults":[],"generatedAtTs":0,"generatedAtBlock":0};
+const C = ['--s1','--s2','--s3','--s4'];
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// group vaults by pair, sort arms by width
+function parseArm(v){
+  const m = v.id.replace(/^aeroCL_/,'');
+  // e.g. USDC_NVDAc_20  or  WETH_cbBTC_4w  or  EURC_USDC_1w
+  const parts = m.split('_');
+  const wtok = parts[parts.length-1];
+  let width = parseInt(wtok,10), wlabel = wtok;
+  const hasWidth = !isNaN(width);
+  const pair = (hasWidth ? parts.slice(0,-1) : parts.filter(x=>x!=='new')).join('/');
+  if(!hasWidth){ width = 0; wlabel = 'single'; }
+  return {pair, width, wlabel};
+}
+const groups = {};
+DATA.vaults.forEach(v=>{ if(!v.series||!v.series.length) return; const a=parseArm(v); v._arm=a;
+  (groups[a.pair]=groups[a.pair]||[]).push(v); });
+Object.values(groups).forEach(g=>g.sort((a,b)=>a._arm.width-b._arm.width));
+const pairNames = Object.keys(groups).sort();
+
+let curPair = pairNames.includes('USDC/NVDAc')?'USDC/NVDAc':pairNames[0];
+let denom = 'vps';
+let econMetric = 'net';
+let viewT0=null, viewT1=null, curFull=[0,0], panState=null, rafPending=false;
+function saveState(){try{localStorage.setItem('cldash',JSON.stringify({curPair,denom,econMetric,viewT0,viewT1}));}catch(e){}}
+function loadState(){try{const s=JSON.parse(localStorage.getItem('cldash')||'{}');
+  if(s.curPair&&pairNames.includes(s.curPair))curPair=s.curPair;
+  if(s.denom)denom=s.denom; if(s.econMetric)econMetric=s.econMetric;
+  if(s.viewT0!=null)viewT0=s.viewT0; if(s.viewT1!=null)viewT1=s.viewT1;}catch(e){}}
+loadState();
+
+document.getElementById('gen').innerHTML = 'generated<br>'+new Date(DATA.generatedAtTs*1000).toISOString().slice(0,16).replace('T',' ')+' UTC';
+{const priced=DATA.vaults.filter(v=>v.tvlUsd!=null);const tvl=priced.reduce((s,v)=>s+v.tvlUsd,0);
+ const miss=DATA.vaults.length-priced.length;
+ document.getElementById('tvl').textContent='$'+tvl.toLocaleString('en-US',{maximumFractionDigits:0});
+ document.getElementById('tvl-l').textContent='total TVL &middot; '+priced.length+' vaults';
+ document.getElementById('tvl-l').innerHTML='total TVL &middot; '+priced.length+' vaults'+(miss?' (+'+miss+' unpriced)':'');}
+
+// pair pills
+const pairsEl = document.getElementById('pairs');
+pairNames.forEach(p=>{ const b=document.createElement('button'); b.className='pill'; b.textContent=p;
+  b.setAttribute('aria-pressed', p===curPair); b.onclick=()=>{curPair=p; viewT0=viewT1=null; renderAll(); };
+  pairsEl.appendChild(b); });
+
+// denom toggles
+const DENOMS=[['vps','Value / share (L)'],['valueL','Total value (L)'],['val0','Value in token0'],['val1','Value in token1']];
+const denomsEl=document.getElementById('denoms');
+DENOMS.forEach(([k,label])=>{ const b=document.createElement('button'); b.className='tg'; b.textContent=label;
+  b.setAttribute('aria-pressed',k===denom); b.onclick=()=>{denom=k; renderAll();}; b.dataset.k=k; denomsEl.appendChild(b); });
+const ECON=[['net','Performance'],['income','Income'],['cost','Cost']];
+const econEl=document.getElementById('econ-metric');
+ECON.forEach(([k,label])=>{const b=document.createElement('button');b.className='tg';b.textContent=label;
+  b.setAttribute('aria-pressed',k===econMetric);b.onclick=()=>{econMetric=k;renderAll();};b.dataset.k=k;econEl.appendChild(b);});
+const ZOOM=[['3mo',7776000],['1mo',2592000],['1wk',604800],['1d',86400],['all',null]];
+const zpEl=document.getElementById('zpresets');
+ZOOM.forEach(([label,win])=>{const b=document.createElement('button');b.className='tg';b.textContent=label==='all'?'All':label;
+  b.dataset.win=win===null?'all':win;b.onclick=()=>setPreset(win);zpEl.appendChild(b);});
+function scheduleRender(){ if(rafPending)return; rafPending=true; requestAnimationFrame(()=>{rafPending=false; renderCharts(); syncZoom(); saveState();}); }
+function clampView(a,b,keepSpan){ const [f0,f1]=curFull; const full=f1-f0||1;
+  if(!keepSpan){ const minS=Math.max(full/400,300); let span=Math.min(Math.max(b-a,minS),full); const c=(a+b)/2; a=c-span/2; b=c+span/2; }
+  const span=b-a; if(a<f0){a=f0;b=f0+span;} if(b>f1){b=f1;a=f1-span;} a=Math.max(a,f0); b=Math.min(b,f1);
+  if(a<=f0+1&&b>=f1-1){viewT0=viewT1=null;} else {viewT0=a;viewT1=b;} }
+function setView(a,b){ clampView(a,b,false); scheduleRender(); }
+function setViewPan(a,b){ clampView(a,b,true); scheduleRender(); }
+function setPreset(win){ const [f0,f1]=curFull; if(win===null||f1-win<=f0){viewT0=viewT1=null;} else {viewT0=f1-win;viewT1=f1;} scheduleRender(); }
+function syncZoom(){ const [f0,f1]=curFull; const cur=viewT0==null?'all':Math.round(viewT1-viewT0);
+  document.querySelectorAll('#zpresets .tg').forEach(b=>{const w=b.dataset.win; b.setAttribute('aria-pressed', String(cur)===String(w)); }); }
+function renderCharts(){ const arms=groups[curPair]||[]; const [f0,f1]=timeDomain(arms); curFull=[f0,f1];
+  renderPrice(arms); renderPerf(arms); renderEconomics(arms); }
+// global pan drag (persists across chart re-renders)
+window.addEventListener('mousemove',ev=>{ if(!panState||!panState.active)return; const dt=(ev.clientX-panState.x)*panState.perPx; setViewPan(panState.t0-dt, panState.t1-dt); });
+window.addEventListener('mouseup',()=>{ if(panState){panState.active=false; document.body.style.userSelect='';} });
+
+const fmt=(n,d=2)=>n==null?'&ndash;':n.toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+const fmtPct=n=>(n>=0?'+':'')+n.toFixed(2)+'%';
+const dayFrac=(a,b)=>(b-a)/86400;
+
+function renderAll(){
+  document.querySelectorAll('.pairs .pill').forEach(b=>b.setAttribute('aria-pressed', b.textContent===curPair));
+  document.querySelectorAll('#denoms .tg').forEach(b=>b.setAttribute('aria-pressed', b.dataset.k===denom));
+  {const pp=curPair.split('/');document.querySelectorAll('#denoms .tg').forEach(b=>{
+    if(b.dataset.k==='val0')b.textContent='Value in '+pp[0];
+    if(b.dataset.k==='val1')b.textContent='Value in '+pp[pp.length-1];});}
+  const arms = groups[curPair]||[];
+  renderMetrics(arms); renderCharts(); renderTable(arms); renderFoot(arms); syncZoom();
+  document.querySelectorAll('#econ-metric .tg').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===econMetric));
+  saveState();
+}
+
+function renderMetrics(arms){
+  const el=document.getElementById('metrics'); el.innerHTML='';
+  const aprFmt=x=>{const a=Math.abs(x);const v=a>=1000?x.toFixed(0):x.toFixed(1);return (x>=0?'+':'')+v+'%';};
+  arms.forEach((v,i)=>{
+    const s=v.series, first=s[0], last=s[s.length-1];
+    const gain=(last.pps/first.pps-1)*100;
+    const days=Math.max(dayFrac(first.ts,last.ts),1/24);
+    const apr=gain*365/days;
+    const evs=v.events||[]; const nreb=evs.filter(e=>e.kind==='rebalance').length; const nharv=evs.filter(e=>e.kind==='harvest').length;
+    const inRange=s.filter(p=>p.tick>=p.tickLo&&p.tick<p.tickHi).length/s.length*100;
+    const price=last.priceT1inT0;
+    const c=cssv(C[i%4]);
+    const card=document.createElement('div'); card.className='mcard'; card.style.setProperty('--arm',c);
+    card.innerHTML=`<div class="arm"><span class="dot"></span>${v._arm.wlabel} &middot; ${v.design}</div>
+      <div class="big ${gain>=0?'up':'down'}">${fmtPct(gain)}</div>
+      <div class="apr ${apr>=0?'up':'down'}">${aprFmt(apr)} <span class="lbl">APR</span></div>
+      <div class="sub"><b>${nreb}</b> rebal &middot; <b>${nharv}</b> harv<br>
+      <b>${inRange.toFixed(0)}%</b> in range<br>
+      price <b>${fmt(price, price>100?2:4)}</b> &middot; <b>${days.toFixed(days<10?1:0)}</b>d</div>`;
+    el.appendChild(card);
+  });
+  if(!arms.length) el.innerHTML='<div class="empty">No data for this pair yet.</div>';
+}
+
+// ---- shared time domain across arms of the pair ----
+function timeDomain(arms){
+  let t0=Infinity,t1=-Infinity;
+  arms.forEach(v=>v.series.forEach(p=>{t0=Math.min(t0,p.ts);t1=Math.max(t1,p.ts);}));
+  return [t0,t1];
+}
+function niceTicks(min,max,n){const span=max-min||1;const step=Math.pow(10,Math.floor(Math.log10(span/n)));
+  const err=span/n/step;let m=err>=7.5?10:err>=3.5?5:err>=1.5?2:1;const s=m*step;
+  const out=[];for(let x=Math.ceil(min/s)*s;x<=max+1e-9;x+=s)out.push(x);return out;}
+function dateTicks(t0,t1,n){const out=[];const span=t1-t0;const day=86400;
+  let step=day;if(span>20*day)step=5*day;else if(span>8*day)step=2*day;else if(span<2*day)step=day/4;
+  for(let t=Math.ceil(t0/step)*step;t<=t1;t+=step)out.push(t);return out.length?out:[t0,t1];}
+
+const W=880,H=300,PADL=54,PADR=14,PADT=12,PADB=26;
+function xscale(t,t0,t1){return PADL+(t-t0)/((t1-t0)||1)*(W-PADL-PADR);}
+function yscale(v,lo,hi){return PADT+(1-(v-lo)/((hi-lo)||1))*(H-PADT-PADB);}
+// points of a per-arm series within [t0,t1], plus the immediate bracketing points so the entering/
+// leaving line segments stay in the y-range. Used to auto-fit y to the visible window.
+function inWin(series,t0,t1){const out=[];let before=null,after=null;
+  for(const p of series){if(p.ts>=t0&&p.ts<=t1)out.push(p);else if(p.ts<t0)before=p;else if(after===null)after=p;}
+  if(before)out.unshift(before);if(after)out.push(after);return out;}
+
+function svgEl(){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  s.setAttribute('viewBox',`0 0 ${W} ${H}`);s.setAttribute('preserveAspectRatio','none');
+  const cp=mk('clipPath',{id:'plot'});cp.appendChild(mk('rect',{x:PADL,y:PADT-2,width:W-PADL-PADR,height:H-PADT-PADB+2}));s.appendChild(cp);return s;}
+function mk(tag,attrs){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+
+function renderPrice(arms){
+  const host=document.getElementById('price-chart'); host.innerHTML='';
+  const leg=document.getElementById('price-legend'); leg.innerHTML='';
+  if(!arms.length){host.innerHTML='<div class="empty">&ndash;</div>';return;}
+  const [f0,f1]=timeDomain(arms); const t0=viewT0!=null?viewT0:f0, t1=viewT1!=null?viewT1:f1;
+  // price domain: robust to early out-of-range outliers over long histories. Collect price + range
+  // edges, take the 1.5–98.5 percentile band, then ensure the CURRENT range of every arm is visible.
+  const cand=[];
+  arms.forEach(v=>inWin(v.series,t0,t1).forEach(p=>{
+    cand.push(p.priceT1inT0);
+    cand.push(Math.pow(10,v.d1-v.d0)/Math.pow(1.0001,p.tickHi));
+    cand.push(Math.pow(10,v.d1-v.d0)/Math.pow(1.0001,p.tickLo));}));
+  cand.sort((a,b)=>a-b);
+  const q=f=>cand.length?cand[Math.min(cand.length-1,Math.max(0,Math.round(f*(cand.length-1))))]:0;
+  let lo=q(0.015),hi=q(0.985);
+  // never clip the price line itself (percentile only trims extreme range edges)
+  arms.forEach(v=>inWin(v.series,t0,t1).forEach(p=>{lo=Math.min(lo,p.priceT1inT0);hi=Math.max(hi,p.priceT1inT0);}));
+  const pad=(hi-lo)*0.08||hi*0.02;lo-=pad;hi+=pad;
+  const svg=svgEl();
+  niceTicks(lo,hi,4).forEach(g=>{const y=yscale(g,lo,hi);
+    svg.appendChild(mk('line',{class:'gridline',x1:PADL,x2:W-PADR,y1:y,y2:y}));
+    const tx=mk('text',{class:'axis',x:PADL-6,y:y+3,'text-anchor':'end'});tx.textContent=g>=100?g.toFixed(0):g.toFixed(g<1?4:2);svg.appendChild(tx);});
+  dateTicks(t0,t1,6).forEach(t=>{const x=xscale(t,t0,t1);
+    const tx=mk('text',{class:'axis',x:x,y:H-8,'text-anchor':'middle'});tx.textContent=new Date(t*1000).toISOString().slice(5,10);svg.appendChild(tx);});
+  // range bands per arm (step areas)
+  arms.forEach((v,i)=>{const c=cssv(C[i%4]);const s=v.series;
+    let d='';const top=[],bot=[];
+    s.forEach(p=>{const x=xscale(p.ts,t0,t1);
+      const eHi=Math.pow(10,v.d1-v.d0)/Math.pow(1.0001,p.tickLo);
+      const eLo=Math.pow(10,v.d1-v.d0)/Math.pow(1.0001,p.tickHi);
+      top.push([x,yscale(eHi,lo,hi)]);bot.push([x,yscale(eLo,lo,hi)]);});
+    // step polygon
+    let path='M'+top[0][0]+','+top[0][1];
+    for(let k=1;k<top.length;k++){path+=' L'+top[k][0]+','+top[k-1][1]+' L'+top[k][0]+','+top[k][1];}
+    for(let k=bot.length-1;k>=0;k--){const nk=k<bot.length-1?k+1:k;path+=' L'+bot[k][0]+','+bot[Math.min(k+1,bot.length-1)][1]+' L'+bot[k][0]+','+bot[k][1];}
+    path+=' Z';
+    svg.appendChild(mk('path',{d:path,fill:c,'fill-opacity':cssv('--band-a'),stroke:c,'stroke-opacity':.35,'stroke-width':1,'clip-path':'url(#plot)'}));
+  });
+  // price line (one per arm, but price is per-pool so same across arms &mdash; draw once from arm0)
+  const v0=arms[0];let pd='';v0.series.forEach((p,k)=>{const x=xscale(p.ts,t0,t1),y=yscale(p.priceT1inT0,lo,hi);pd+=(k?'L':'M')+x+','+y+' ';});
+  svg.appendChild(mk('path',{d:pd,fill:'none',stroke:cssv('--price'),'stroke-width':2,'clip-path':'url(#plot)'}));
+  // event markers ON the price line: rebalance = triangle, harvest = diamond, coloured per arm.
+  const priceAt=ts=>{let b=v0.series[0];v0.series.forEach(s=>{if(Math.abs(s.ts-ts)<Math.abs(b.ts-ts))b=s;});return b.priceT1inT0;};
+  arms.forEach((v,i)=>{const c=cssv(C[i%4]);const off=(i-(arms.length-1)/2)*6;
+    (v.events||[]).forEach(e=>{if(e.ts<t0-1||e.ts>t1+1)return;const x=xscale(e.ts,t0,t1),y=yscale(priceAt(e.ts),lo,hi)+off;
+      if(e.kind==='rebalance'){svg.appendChild(mk('path',{d:`M${x-4},${y-4} L${x+4},${y-4} L${x},${y+4} Z`,fill:c,'fill-opacity':.9,stroke:cssv('--surface'),'stroke-width':.75}));}
+      else{svg.appendChild(mk('path',{d:`M${x},${y-4} L${x+4},${y} L${x},${y+4} L${x-4},${y} Z`,fill:'none',stroke:c,'stroke-width':1.6}));}
+    });});
+  attachHover(svg,arms,t0,t1,lo,hi,'price');
+  host.appendChild(svg);
+  // legend
+  leg.innerHTML='<span><span class="sw line"></span>asset price</span>'
+    +arms.map((v,i)=>`<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel} range</span>`).join('')
+    +'<span style="color:var(--muted)">&#9650; rebalance &#9670; harvest</span>';
+  const pp=curPair.split('/');
+  document.getElementById('price-hint').innerHTML=`${pp[pp.length-1]} priced in ${pp[0]} &middot; ticks mark rebalances`;
+}
+
+function seriesVal(v,p){
+  if(denom==='vps') return p.pps;
+  if(denom==='valueL') return p.valueL;
+  if(denom==='val0') return (p.a0+p.idle0)+(p.a1+p.idle1)*p.priceT1inT0; // full vault value in token0, idle-incl
+  if(denom==='val1') return (p.a0+p.idle0)/p.priceT1inT0+(p.a1+p.idle1); // full vault value in token1
+  return p.pps;
+}
+function renderPerf(arms){
+  const host=document.getElementById('perf-chart');host.innerHTML='';
+  const leg=document.getElementById('perf-legend');leg.innerHTML='';
+  if(!arms.length){host.innerHTML='<div class="empty">&ndash;</div>';return;}
+  const [f0,f1]=timeDomain(arms); const t0=viewT0!=null?viewT0:f0, t1=viewT1!=null?viewT1:f1;
+  // index each arm to 100 at its first sample
+  const idx=arms.map(v=>{const base=seriesVal(v,v.series[0])||1;return v.series.map(p=>({ts:p.ts,val:seriesVal(v,p)/base*100}));});
+  let lo=Infinity,hi=-Infinity;
+  idx.forEach(a=>{let before=null,after=null;
+    a.forEach(p=>{if(p.ts>=t0&&p.ts<=t1){lo=Math.min(lo,p.val);hi=Math.max(hi,p.val);}else if(p.ts<t0)before=p;else if(after===null)after=p;});
+    [before,after].forEach(p=>{if(p){lo=Math.min(lo,p.val);hi=Math.max(hi,p.val);}});});
+  if(!isFinite(lo)){lo=100;hi=100;}
+  const pad=(hi-lo)*0.08||1;lo-=pad;hi+=pad;
+  const svg=svgEl();
+  niceTicks(lo,hi,4).forEach(g=>{const y=yscale(g,lo,hi);
+    svg.appendChild(mk('line',{class:'gridline',x1:PADL,x2:W-PADR,y1:y,y2:y,stroke:g===100?cssv('--muted'):undefined,'stroke-dasharray':g===100?'3 3':'0'}));
+    const tx=mk('text',{class:'axis',x:PADL-6,y:y+3,'text-anchor':'end'});tx.textContent=g.toFixed(1);svg.appendChild(tx);});
+  dateTicks(t0,t1,6).forEach(t=>{const x=xscale(t,t0,t1);const tx=mk('text',{class:'axis',x:x,y:H-8,'text-anchor':'middle'});tx.textContent=new Date(t*1000).toISOString().slice(5,10);svg.appendChild(tx);});
+  idx.forEach((a,i)=>{const c=cssv(C[i%4]);let d='';a.forEach((p,k)=>{const x=xscale(p.ts,t0,t1),y=yscale(p.val,lo,hi);d+=(k?'L':'M')+x+','+y+' ';});
+    svg.appendChild(mk('path',{d,fill:'none',stroke:c,'stroke-width':2,'clip-path':'url(#plot)'}));
+    const last=a[a.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last.val,lo,hi),r:3,fill:c}));});
+  attachHover(svg,arms,t0,t1,lo,hi,'perf',idx);
+  host.appendChild(svg);
+  leg.innerHTML=arms.map((v,i)=>`<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel}</span>`).join('');
+}
+
+// crosshair + tooltip shared
+const tip=document.getElementById('tip');
+function attachHover(svg,arms,t0,t1,lo,hi,kind,idx){
+  const cx=mk('line',{stroke:cssv('--crosshair'),'stroke-width':1,'stroke-dasharray':'3 3',y1:PADT,y2:H-PADB,x1:-99,x2:-99});svg.appendChild(cx);
+  const overlay=mk('rect',{x:PADL,y:PADT,width:W-PADL-PADR,height:H-PADT-PADB,fill:'transparent'});svg.appendChild(overlay);
+  overlay.style.cursor='crosshair';
+  overlay.addEventListener('mousemove',ev=>{
+    if(panState&&panState.active)return;
+    const r=svg.getBoundingClientRect();const px=(ev.clientX-r.left)/r.width*W;
+    const t=t0+(px-PADL)/((W-PADL-PADR))*(t1-t0);
+    cx.setAttribute('x1',px);cx.setAttribute('x2',px);
+    // nearest sample index of arm0
+    let rows='';
+    if(kind==='price'){
+      const v=arms[0];let best=v.series[0];v.series.forEach(p=>{if(Math.abs(p.ts-t)<Math.abs(best.ts-t))best=p;});
+      rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${cssv('--price')}"></span>price</span><span class="v">${fmt(best.priceT1inT0,best.priceT1inT0>100?2:4)}</span></div>`;
+      arms.forEach((vv,i)=>{let b=vv.series[0];vv.series.forEach(p=>{if(Math.abs(p.ts-t)<Math.abs(b.ts-t))b=p;});
+        const eHi=Math.pow(10,vv.d1-vv.d0)/Math.pow(1.0001,b.tickLo),eLo=Math.pow(10,vv.d1-vv.d0)/Math.pow(1.0001,b.tickHi);
+        rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${cssv(C[i%4])}"></span>${vv._arm.wlabel}</span><span class="v">${fmt(eLo,eLo>100?1:3)}&ndash;${fmt(eHi,eHi>100?1:3)}</span></div>`;});
+      tip.querySelector('.t-date')&&0;
+    } else {
+      arms.forEach((vv,i)=>{const a=idx[i];let bi=0;a.forEach((p,k)=>{if(Math.abs(p.ts-t)<Math.abs(a[bi].ts-t))bi=k;});
+        const g=a[bi].val-100;rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${cssv(C[i%4])}"></span>${vv._arm.wlabel}</span><span class="v">${(g>=0?'+':'')+g.toFixed(2)}%</span></div>`;});
+    }
+    const dt=new Date(t*1000).toISOString().slice(0,16).replace('T',' ');
+    tip.innerHTML=`<div class="t-date">${dt} UTC</div>${rows}`;
+    tip.style.opacity=1;tip.style.left=Math.min(ev.clientX+14,window.innerWidth-180)+'px';tip.style.top=(ev.clientY-10)+'px';
+  });
+  overlay.addEventListener('mouseleave',()=>{tip.style.opacity=0;cx.setAttribute('x1',-99);cx.setAttribute('x2',-99);});
+  overlay.addEventListener('wheel',ev=>{ev.preventDefault();const r=svg.getBoundingClientRect();const px=(ev.clientX-r.left)/r.width*W;
+    const tc=t0+(px-PADL)/(W-PADL-PADR)*(t1-t0);const f=ev.deltaY>0?1.25:0.8;setView(tc-(tc-t0)*f, tc+(t1-tc)*f);},{passive:false});
+  overlay.addEventListener('mousedown',ev=>{const r=svg.getBoundingClientRect();
+    panState={active:true,x:ev.clientX,t0,t1,perPx:(t1-t0)/((W-PADL-PADR)*(r.width/W))};tip.style.opacity=0;document.body.style.userSelect='none';overlay.style.cursor='grabbing';});
+  overlay.addEventListener('dblclick',()=>{viewT0=viewT1=null;scheduleRender();});
+}
+
+
+function cumSeries(v){ // cumulative % per event for income/cost/net
+  const evs=(v.events||[]).slice().sort((a,b)=>a.ts-b.ts);
+  let ci=0,cc=0,cn=0;const out=[];
+  evs.forEach(e=>{ if(e.incomePct!=null)ci+=e.incomePct; if(e.costPct!=null)cc+=e.costPct; cn+=e.netPct;
+    out.push({ts:e.ts, income:ci, cost:cc, net:cn, hasIC:e.incomePct!=null}); });
+  return out;
+}
+function renderEconomics(arms){
+  const host=document.getElementById('econ-chart');host.innerHTML='';
+  const leg=document.getElementById('econ-legend');leg.innerHTML='';
+  const hint=document.getElementById('econ-hint');
+  const anyIC=arms.some(v=>(v.events||[]).some(e=>e.incomePct!=null));
+  if((econMetric==='income'||econMetric==='cost')&&!anyIC){
+    host.innerHTML='<div class="empty">Income / cost split needs a USDC leg to price the AERO reward &mdash; available for all USDC pairs (stocks + EURC/USDC). This pure-crypto pair has none, so use Performance.</div>';
+    hint.innerHTML='per-event, cumulative &middot; performance = income + cost (cost is negative)'; return; }
+  const cum=arms.map(cumSeries);
+  const [f0,f1]=timeDomain(arms); const t0=viewT0!=null?viewT0:f0, t1=viewT1!=null?viewT1:f1;
+  const key=econMetric;
+  let lo=Infinity,hi=-Infinity;
+  cum.forEach(a=>{let base=0;
+    a.forEach(p=>{if(p.ts<t0)base=p[key];if(p.ts>=t0&&p.ts<=t1){lo=Math.min(lo,p[key]);hi=Math.max(hi,p[key]);}});
+    lo=Math.min(lo,base);hi=Math.max(hi,base);});
+  if(!isFinite(lo)){lo=0;hi=0;}
+  if(hi-lo<0.2){hi+=0.1;lo-=0.1;} const pad=(hi-lo)*0.1;lo-=pad;hi+=pad;
+  const svg=svgEl();
+  niceTicks(lo,hi,4).forEach(g=>{const y=yscale(g,lo,hi);
+    svg.appendChild(mk('line',{class:'gridline',x1:PADL,x2:W-PADR,y1:y,y2:y,stroke:Math.abs(g)<1e-9?cssv('--muted'):undefined,'stroke-dasharray':Math.abs(g)<1e-9?'3 3':'0'}));
+    const tx=mk('text',{class:'axis',x:PADL-6,y:y+3,'text-anchor':'end'});tx.textContent=(g>=0?'+':'')+g.toFixed(2)+'%';svg.appendChild(tx);});
+  dateTicks(t0,t1,6).forEach(t=>{const x=xscale(t,t0,t1);const tx=mk('text',{class:'axis',x:x,y:H-8,'text-anchor':'middle'});tx.textContent=new Date(t*1000).toISOString().slice(5,10);svg.appendChild(tx);});
+  const idx=[];
+  cum.forEach((a,i)=>{const c=cssv(C[i%4]);if(!a.length){idx.push([]);return;}
+    // step line (values realise at events), start at 0 at t0
+    let d='M'+xscale(curFull[0],t0,t1)+','+yscale(0,lo,hi);let prev=0;
+    a.forEach(p=>{const x=xscale(p.ts,t0,t1);d+=' L'+x+','+yscale(prev,lo,hi)+' L'+x+','+yscale(p[key],lo,hi);prev=p[key];});
+    d+=' L'+xscale(curFull[1],t0,t1)+','+yscale(prev,lo,hi);
+    svg.appendChild(mk('path',{d,fill:'none',stroke:c,'stroke-width':2,'clip-path':'url(#plot)'}));
+    const last=a[a.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last[key],lo,hi),r:3,fill:c}));
+    idx.push(a.map(p=>({ts:p.ts,val:100+p[key]})));});
+  attachHover(svg,arms,t0,t1,lo,hi,'perf',idx);
+  host.appendChild(svg);
+  leg.innerHTML=arms.map((v,i)=>`<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel}</span>`).join('');
+  hint.innerHTML=(key==='net'?'cumulative performance (= income + cost) &middot; matches value/share':key==='income'?'income kept from rewards + LP fees (positive)':'value lost to swaps (negative)')+' &middot; % of vault value';
+}
+
+function renderTable(arms){
+  const host=document.getElementById('events-table');
+  let rows=[];
+  arms.forEach((v,i)=>{const c=cssv(C[i%4]);(v.events||[]).forEach(e=>rows.push({...e,arm:v._arm.wlabel,c,usdc:v.usdcQuote}));});
+  rows.sort((a,b)=>b.ts-a.ts);
+  if(!rows.length){host.innerHTML='<div class="empty">No rebalances or harvests recorded yet for this pair.</div>';return;}
+  const pct=(x,cls)=>x==null?'<span class="mut">&ndash;</span>':`<span class="${cls||(x>=0?'pos':'neg')}">${(x>=0?'+':'')+x.toFixed(3)}%</span>`;
+  const capped=arms.some(v=>v._eventsCapped);
+  host.innerHTML=`<div class="etable"><table><thead><tr>
+    <th>Time (UTC)</th><th>Arm</th><th>Type</th><th>Income</th><th>Cost</th><th>Net</th></tr></thead><tbody>`+
+    rows.slice(0,200).map(r=>`<tr>
+      <td class="mut">${new Date(r.ts*1000).toISOString().slice(0,16).replace('T',' ')}</td>
+      <td><span class="armdot" style="background:${r.c}"></span> ${r.arm}</td>
+      <td><span class="kind">${r.kind==='rebalance'?'&#9650; rebalance':'&#9670; harvest'}</span></td>
+      <td>${pct(r.incomePct,'pos')}</td><td>${pct(r.costPct,'neg')}</td><td>${pct(r.netPct)}</td></tr>`).join('')
+    +`</tbody></table></div>`+(capped?'<div class="hint" style="margin-top:.5rem">Income &amp; cost are % of vault value; income + cost = net. Non-USDC pairs show net only. Older events beyond the recent 70/vault are omitted here (card counts are exact).</div>':'<div class="hint" style="margin-top:.5rem">Income &amp; cost are % of vault value; income + cost = net.</div>');
+}
+
+function renderFoot(arms){
+  const f=document.getElementById('foot');
+  const note = curPair.includes('USDC/')&&/AAPLc|GOOGLc|METAc|NVDAc/.test(curPair)
+    ? 'Stock vaults deployed 2026-08-28 &mdash; short history; series fill in over days. '
+    : '';
+  f.innerHTML=`${note}Performance line = <b>getPricePerFullShare()</b> indexed to 100: the vault's own value-per-share in liquidity units, <b>idle-inclusive</b> (position L + idle-as-L via underlyingBalanceWithInvestment). Deposit- and price-neutral, so it isolates fee + reward compounding minus rebalance cost. Range bands are the active tick range converted to price; &#9650; marks rebalances and &#9670; harvests on the price line. Income = AERO (net of the 10% protocol fee) + LP fees kept (positive); cost = value lost to swaps (negative); net = income + cost, and cumulative net equals the value/share gain exactly. Cost absorbs anything not captured as measured income (swap impact, divergence-loss crystallisation), so treat it as an upper bound on pure swap cost. APR annualises each vault's net gain over its own age &mdash; directly comparable across ages, but noisy for vaults only hours/days old. Snapshot at block ${DATA.generatedAtBlock}; re-run the collector to refresh.`;
+}
+renderAll();
+
+// --- live auto-refresh: reload when the server has newer on-chain data ---
+(function(){
+  const curBlock=(DATA&&DATA.generatedAtBlock)||0;
+  async function check(){
+    if(document.visibilityState!=='visible')return;
+    try{ const r=await fetch('/api/meta',{cache:'no-store'}); const m=await r.json();
+      if(m&&m.block&&m.block>curBlock){ location.reload(); } }catch(e){}
+  }
+  setInterval(check, 45000);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')check(); });
+})();
+</script>
+</body>
+</html>
