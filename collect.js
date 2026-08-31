@@ -26,15 +26,37 @@ const T = {
   rebV1:    id("Rebalanced(uint256,uint256,uint256,uint256,uint256)"),
 };
 
-function makeRpc(url) {
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+// Retry transient RPC failures (HTTP 429/5xx, network errors, and JSON-RPC
+// rate-limit codes) with exponential backoff + jitter. Without this, one
+// throttled call turns into a null that a downstream .slice() throws on,
+// dropping the whole vault — which is why a free-tier key showed only the
+// first few vaults. Retries let bursts back off and succeed.
+function isRateLimit(err) {
+  const s = String(err && err.message || err || "");
+  return /429|rate.?limit|limit exceeded|too many|capacity|-3200[456]|timeout|ETIMEDOUT|ECONNRESET|EAI_AGAIN|fetch failed/i.test(s);
+}
+function makeRpc(url, opts = {}) {
+  const maxRetries = opts.maxRetries != null ? opts.maxRetries : 7;
   return async (method, params) => {
-    const r = await fetch(url, {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-    });
-    const j = await r.json();
-    if (j.error) throw new Error(JSON.stringify(j.error));
-    return j.result;
+    let attempt = 0;
+    for (;;) {
+      try {
+        const r = await fetch(url, {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        });
+        if (r.status === 429 || r.status >= 500) throw new Error(`http ${r.status}`);
+        const j = await r.json();
+        if (j.error) throw new Error(JSON.stringify(j.error));
+        return j.result;
+      } catch (e) {
+        attempt++;
+        if (attempt > maxRetries || !isRateLimit(e)) throw e;
+        const backoff = Math.min(8000, 250 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 200);
+        await sleep(backoff);
+      }
+    }
   };
 }
 

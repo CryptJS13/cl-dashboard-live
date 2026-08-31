@@ -8,7 +8,7 @@ const { collectAll } = require("./collect.js");
 const PORT = parseInt(process.env.PORT || "8080", 10);
 const REFRESH_MINUTES = parseFloat(process.env.REFRESH_MINUTES || "5");
 const SAMPLES = parseInt(process.env.SAMPLES || "90", 10);
-const CONCURRENCY = parseInt(process.env.CONCURRENCY || "4", 10);
+const CONCURRENCY = parseInt(process.env.CONCURRENCY || "2", 10);
 const RPC_URL = process.env.RPC_URL
   || (process.env.ALCHEMEY_KEY ? `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMEY_KEY}`
   : (process.env.ALCHEMY_KEY ? `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}` : null));
