@@ -19,12 +19,24 @@ RPC_URL="https://base-mainnet.g.alchemy.com/v2/<key>" npm start
 | `RPC_URL` | — | Base mainnet RPC (archive access required for history). Or set `ALCHEMEY_KEY` and the URL is built for you. |
 | `PORT` | `8080` | HTTP port |
 | `REFRESH_MINUTES` | `5` | how often to re-collect on-chain data |
-| `SAMPLES` | `90` | time-series samples per vault |
-| `CONCURRENCY` | `4` | vaults collected in parallel. 4 ≈ 2 min for a full refresh on an Alchemy free tier; raise to 8 on a paid plan, drop to 2 if you see rate-limit errors in the log |
+| `SAMPLES` | `90` | samples in the **first** (cold) collection, spread birth→head per vault |
+| `CONCURRENCY` | `2` | vaults collected in parallel. Raise to 4–8 on a paid RPC plan; drop to 1 if you still see rate-limit errors in the log |
+| `CADENCE_BLOCKS` | `450` | ≈15 min on Base. Spacing of samples appended on each incremental refresh (smaller = fresher chart tip, slightly more RPC) |
+| `CACHE_FILE` | `./data-cache.json` | where the snapshot is persisted between refreshes/restarts |
 
-The first collection across 20 vaults takes ~2 minutes at the default concurrency; until then the page shows a "collecting…"
-splash and retries. An archive RPC is required (historical `eth_call` at old blocks). Alchemy Base,
-QuickNode Base, or any archive Base endpoint works.
+**Collection is incremental.** Only the *first* refresh reads full history (birth→head, `SAMPLES` points/vault
+plus every past event); the snapshot is then cached, and every later refresh fetches **only what is new since the
+previous head** — a couple of samples and any new rebalances/harvests. Steady-state RPC use drops ~100× (from tens
+of thousands of calls per refresh to a few hundred), so refreshes are quick and cheap while full history is retained.
+Each refresh logs `… N rpc · incremental|full …` so you can see it working.
+
+The cold collection across 20 vaults takes ~2 minutes; until then the page shows a "collecting…" splash and retries.
+The snapshot is written to `CACHE_FILE`, so a **restart resumes incrementally** instead of re-reading history. On
+Railway this survives restarts within a deploy; mount a volume at `CACHE_FILE`'s path to also skip the cold rebuild
+across redeploys (otherwise each redeploy pays the one-time ~2 min cold collection).
+
+An archive RPC is required (historical `eth_call` at old blocks). Alchemy Base, QuickNode Base, or any archive Base
+endpoint works.
 
 ## Docker
 

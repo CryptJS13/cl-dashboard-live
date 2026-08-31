@@ -3,12 +3,16 @@
 const fs = require("fs");
 const path = require("path");
 const express = require("express");
-const { collectAll } = require("./collect.js");
+const { collectAll, SCHEMA } = require("./collect.js");
 
 const PORT = parseInt(process.env.PORT || "8080", 10);
 const REFRESH_MINUTES = parseFloat(process.env.REFRESH_MINUTES || "5");
 const SAMPLES = parseInt(process.env.SAMPLES || "90", 10);
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || "2", 10);
+const CADENCE_BLOCKS = parseInt(process.env.CADENCE_BLOCKS || "450", 10);   // ~15 min on Base: spacing of appended samples
+// Persist the last snapshot so a restart/redeploy resumes incrementally instead of re-collecting all history.
+// On Railway this survives restarts within a deploy; mount a volume at this path to survive redeploys too.
+const CACHE_FILE = process.env.CACHE_FILE || path.join(__dirname, "data-cache.json");
 const RPC_URL = process.env.RPC_URL
   || (process.env.ALCHEMEY_KEY ? `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMEY_KEY}`
   : (process.env.ALCHEMY_KEY ? `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}` : null));
@@ -21,24 +25,39 @@ if (!RPC_URL) {
 const TEMPLATE = fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8");
 const PLACEHOLDER = '/*__DATA__*/ {"vaults":[],"generatedAtTs":0,"generatedAtBlock":0}';
 
-let cache = null;         // last successful data object
+let cache = null;         // last successful data object (fed back as `prev` for incremental collection)
 let cacheJson = null;     // pre-stringified
 let lastError = null;
 let lastRefreshMs = 0;
 let refreshing = false;
+
+// Warm-start from disk so the page serves immediately and the first refresh is incremental.
+try {
+  if (fs.existsSync(CACHE_FILE)) {
+    const disk = JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
+    if (disk && disk._schema === SCHEMA && Array.isArray(disk.vaults) && disk.vaults.length) {
+      cache = disk; cacheJson = JSON.stringify(disk);
+      console.log(`warm-started from ${CACHE_FILE}: block ${disk.generatedAtBlock} · ${disk.vaults.length} vaults`);
+    } else {
+      console.log(`ignoring ${CACHE_FILE} (schema ${disk && disk._schema} != ${SCHEMA} or empty) — will rebuild`);
+    }
+  }
+} catch (e) { console.error(`could not read ${CACHE_FILE}: ${e.message}`); }
 
 async function refresh() {
   if (refreshing) return;
   refreshing = true;
   const t0 = Date.now();
   try {
-    const data = await collectAll(RPC_URL, { samples: SAMPLES, concurrency: CONCURRENCY });
+    const data = await collectAll(RPC_URL, { samples: SAMPLES, concurrency: CONCURRENCY, cadenceBlocks: CADENCE_BLOCKS, prev: cache });
     cache = data;
     cacheJson = JSON.stringify(data);
     lastError = null;
     lastRefreshMs = Date.now();
+    try { fs.writeFileSync(CACHE_FILE, cacheJson); } catch (e) { console.error(`cache write failed: ${e.message}`); }
     const tvl = data.vaults.reduce((s, v) => s + (v.tvlUsd || 0), 0);
-    console.log(`[${new Date().toISOString()}] refreshed block ${data.generatedAtBlock} · ${data.vaults.length} vaults · $${tvl.toFixed(0)} TVL · ${((Date.now() - t0) / 1000).toFixed(0)}s`);
+    const mode = data._incremental ? "incremental" : "full";
+    console.log(`[${new Date().toISOString()}] refreshed block ${data.generatedAtBlock} · ${data.vaults.length} vaults · $${tvl.toFixed(0)} TVL · ${data._rpcCalls} rpc · ${mode} · ${((Date.now() - t0) / 1000).toFixed(0)}s`);
   } catch (e) {
     lastError = e.message || String(e);
     console.error(`[${new Date().toISOString()}] refresh FAILED: ${lastError}`);
@@ -81,7 +100,7 @@ app.get("/", (_req, res) => {
   res.type("html").send(TEMPLATE.replace(PLACEHOLDER, "/*__DATA__*/ " + cacheJson));
 });
 
-const BUILD = "v2-rpc-retry";                    // bump on deploy-visible changes; printed at startup to confirm which code is live
+const BUILD = "v3-incremental";                  // bump on deploy-visible changes; printed at startup to confirm which code is live
 app.listen(PORT, () => {
   console.log(`CL vault dashboard [${BUILD}] on http://localhost:${PORT}  ·  RPC ${RPC_URL.replace(/\/v2\/.*/, "/v2/***")}  ·  concurrency ${CONCURRENCY}  ·  refresh every ${REFRESH_MINUTES}m`);
   refresh();                                    // initial collection
