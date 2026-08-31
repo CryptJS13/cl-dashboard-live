@@ -450,7 +450,7 @@ function renderEconomics(arms){
   const hint=document.getElementById('econ-hint');
   const anyIC=arms.some(v=>(v.events||[]).some(e=>e.incomePct!=null));
   if((econMetric==='income'||econMetric==='cost')&&!anyIC){
-    host.innerHTML='<div class="empty">Income / cost split needs a USDC leg to price the AERO reward &mdash; available for all USDC pairs (stocks + EURC/USDC). This pure-crypto pair has none, so use Performance.</div>';
+    host.innerHTML='<div class="empty">No income / cost data yet &mdash; this vault has no rebalances or harvests in range. Use Performance.</div>';
     hint.innerHTML='per-event, cumulative &middot; performance = income + cost (cost is negative)'; return; }
   const cum=arms.map(cumSeries);
   const [f0,f1]=timeDomain(arms); const t0=viewT0!=null?viewT0:f0, t1=viewT1!=null?viewT1:f1;
@@ -496,7 +496,7 @@ function renderTable(arms){
       <td><span class="armdot" style="background:${r.c}"></span> ${r.arm}</td>
       <td><span class="kind">${r.kind==='rebalance'?'&#9650; rebalance':'&#9670; harvest'}</span></td>
       <td>${pct(r.incomePct,'pos')}</td><td>${pct(r.costPct,'neg')}</td><td>${pct(r.netPct)}</td></tr>`).join('')
-    +`</tbody></table></div>`+(capped?'<div class="hint" style="margin-top:.5rem">Income &amp; cost are % of vault value; income + cost = net. Non-USDC pairs show net only. Older events beyond the recent 70/vault are omitted here (card counts are exact).</div>':'<div class="hint" style="margin-top:.5rem">Income &amp; cost are % of vault value; income + cost = net.</div>');
+    +`</tbody></table></div>`+(capped?'<div class="hint" style="margin-top:.5rem">Income &amp; cost are % of vault value; income + cost = net. Older events beyond the recent 70/vault are omitted here (card counts are exact).</div>':'<div class="hint" style="margin-top:.5rem">Income &amp; cost are % of vault value; income + cost = net.</div>');
 }
 
 function renderFoot(arms){

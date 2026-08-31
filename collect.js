@@ -184,8 +184,6 @@ async function collectAll(rpcUrl, opts = {}) {
 
     // ---- per-event income/cost/net enrichment ----
     if (series.length) {
-      const t0usdc = t0.toLowerCase() === USDC, t1usdc = t1.toLowerCase() === USDC;
-      const hasUsdcLeg = t0usdc || t1usdc;
       let feeRate = 0;
       if (strat) { const num = async g => Number(NB(await callAt(strat, sel(g), head)) || 0n);
         const den = await num("feeDenominator()") || 10000;
@@ -225,36 +223,42 @@ async function collectAll(rpcUrl, opts = {}) {
         const netPctL = (Number(NB(ppsA)) / Number(NB(ppsB)) - 1) * 100;
         const ts = series.reduce((best, s) => Math.abs(s.block - b) < Math.abs(best.block - b) ? s : best, series[0]).ts;
         let income = null, cost = null, incomePct = null, costPct = null, aeroAmt = 0, fee0 = 0, fee1 = 0;
-        if (hasUsdcLeg) {
-          const s0b = await callAt(v.pool, sel("slot0()"), b - 1);
-          const priceRef = s0b ? Math.pow(10, d1 - d0) / Math.pow(1.0001, i24(s0b.slice(66, 130))) : null;
-          const navBefore = priceRef != null ? await navAt(b - 1, priceRef) : null;
-          if (priceRef != null && navBefore != null) {
-            const rc = await rpc("eth_getTransactionReceipt", [e.tx]).catch(() => null);
-            let coll0 = 0, coll1 = 0, dec0 = 0, dec1 = 0;
-            if (rc) for (const l of rc.logs) {
-              const a = l.address.toLowerCase();
-              if (a === AERO && l.topics[0] === T.transfer && gauge && ("0x" + l.topics[1].slice(26)).toLowerCase() === gauge && ("0x" + l.topics[2].slice(26)).toLowerCase() === (strat || "").toLowerCase())
-                aeroAmt += Number(BigInt(l.data)) / 1e18;
-              if (l.topics[0] === T.collect) { const d = l.data.slice(2); coll0 += Number(BigInt("0x" + d.slice(64, 128))); coll1 += Number(BigInt("0x" + d.slice(128, 192))); }
-              if (l.topics[0] === T.decrease) { const d = l.data.slice(2); dec0 += Number(BigInt("0x" + d.slice(64, 128))); dec1 += Number(BigInt("0x" + d.slice(128, 192))); }
-            }
-            fee0 = Math.max(0, coll0 - dec0) / 10 ** d0;
-            fee1 = Math.max(0, coll1 - dec1) / 10 ** d1;
-            const aeroUsdcPx = aeroAmt > 0 ? (await aeroUsdc(b - 1)) || 0 : 0;
-            const aeroInT0 = t0usdc ? aeroUsdcPx : (priceRef ? aeroUsdcPx / priceRef : 0);
-            const inc = aeroAmt * (1 - feeRate) * aeroInT0 + fee0 + fee1 * priceRef;
-            incomePct = navBefore ? inc / navBefore * 100 : 0;
-            costPct = netPctL - incomePct;
-            if (costPct > 0) { incomePct = netPctL; costPct = 0; }
-            income = incomePct / 100 * navBefore;
-            cost = costPct / 100 * navBefore;
+        const s0b = await callAt(v.pool, sel("slot0()"), b - 1);
+        const priceRef = s0b ? Math.pow(10, d1 - d0) / Math.pow(1.0001, i24(s0b.slice(66, 130))) : null;
+        const navBefore = priceRef != null ? await navAt(b - 1, priceRef) : null;
+        if (priceRef != null && navBefore != null) {
+          const rc = await rpc("eth_getTransactionReceipt", [e.tx]).catch(() => null);
+          let coll0 = 0, coll1 = 0, dec0 = 0, dec1 = 0;
+          if (rc) for (const l of rc.logs) {
+            const a = l.address.toLowerCase();
+            if (a === AERO && l.topics[0] === T.transfer && gauge && ("0x" + l.topics[1].slice(26)).toLowerCase() === gauge && ("0x" + l.topics[2].slice(26)).toLowerCase() === (strat || "").toLowerCase())
+              aeroAmt += Number(BigInt(l.data)) / 1e18;
+            if (l.topics[0] === T.collect) { const d = l.data.slice(2); coll0 += Number(BigInt("0x" + d.slice(64, 128))); coll1 += Number(BigInt("0x" + d.slice(128, 192))); }
+            if (l.topics[0] === T.decrease) { const d = l.data.slice(2); dec0 += Number(BigInt("0x" + d.slice(64, 128))); dec1 += Number(BigInt("0x" + d.slice(128, 192))); }
           }
+          fee0 = Math.max(0, coll0 - dec0) / 10 ** d0;
+          fee1 = Math.max(0, coll1 - dec1) / 10 ** d1;
+          // Value the AERO reward in token0 using USD only as an intermediary:
+          // token0-per-AERO = (USDC-per-AERO) / (USDC-per-token0). USDC need not be
+          // in the pair, so the income/cost split now resolves for every vault.
+          let aeroInT0 = 0;
+          if (aeroAmt > 0) {
+            const aeroUsdPx = (await aeroUsdc(b - 1)) || 0;          // USDC per AERO (historical)
+            let t0Usd = await usdPrice(t0, head);                    // USDC per token0 (cached from the TVL step)
+            if (t0Usd == null) { const t1Usd = await usdPrice(t1, head); if (t1Usd != null && priceRef) t0Usd = t1Usd / priceRef; }
+            aeroInT0 = t0Usd ? aeroUsdPx / t0Usd : 0;                // token0 per AERO
+          }
+          const inc = aeroAmt * (1 - feeRate) * aeroInT0 + fee0 + fee1 * priceRef;
+          incomePct = navBefore ? inc / navBefore * 100 : 0;
+          costPct = netPctL - incomePct;
+          if (costPct > 0) { incomePct = netPctL; costPct = 0; }
+          income = incomePct / 100 * navBefore;
+          cost = costPct / 100 * navBefore;
         }
         events.push({ kind: e.kind, tx: e.tx, block: b, ts, netPct: netPctL, income, cost, incomePct, costPct, aeroClaimed: aeroAmt, fee0, fee1 });
       }
       rec.events = events;
-      rec.usdcQuote = hasUsdcLeg;
+      rec.usdcQuote = true;   // income/cost now priced for every pair via the USD bridge (retained for frontend compat)
     }
 
     return rec;
