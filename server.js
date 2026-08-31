@@ -81,8 +81,9 @@ app.get("/", (_req, res) => {
   res.type("html").send(TEMPLATE.replace(PLACEHOLDER, "/*__DATA__*/ " + cacheJson));
 });
 
+const BUILD = "v2-rpc-retry";                    // bump on deploy-visible changes; printed at startup to confirm which code is live
 app.listen(PORT, () => {
-  console.log(`CL vault dashboard on http://localhost:${PORT}  ·  RPC ${RPC_URL.replace(/\/v2\/.*/, "/v2/***")}  ·  refresh every ${REFRESH_MINUTES}m`);
+  console.log(`CL vault dashboard [${BUILD}] on http://localhost:${PORT}  ·  RPC ${RPC_URL.replace(/\/v2\/.*/, "/v2/***")}  ·  concurrency ${CONCURRENCY}  ·  refresh every ${REFRESH_MINUTES}m`);
   refresh();                                    // initial collection
   setInterval(refresh, REFRESH_MINUTES * 60 * 1000);
 });
