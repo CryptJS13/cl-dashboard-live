@@ -74,6 +74,24 @@ Alternatives, same idea: Render (very similar; free tier sleeps between requests
 collection cache — mind the ~2 min warmup on wake) and Fly.io (nice CLI, slightly more setup). A VPS
 also works (`node server.js` under systemd or pm2) if you already have one.
 
+### Persist the cache across redeploys (Railway volume)
+
+Optional but recommended. Without a volume, each redeploy starts on a fresh filesystem and pays the one-time
+`full` cold collection (~5–10 min) before going incremental. A volume keeps the snapshot so redeploys and
+restarts warm-start instead.
+
+1. Open the `cl-dashboard-live` service.
+2. Attach a volume: **⌘K / Ctrl-K → "Volume" → Create/Attach Volume** for this service (or right-click the
+   service in the canvas → **Attach Volume**).
+3. Set the **mount path** to `/data` (default size is fine — the snapshot is well under 1 MB).
+4. In **Variables**, add `CACHE_FILE = /data/data-cache.json`.
+5. Redeploy (automatic on adding the volume/variable; otherwise trigger one).
+
+After this, boot logs show `warm-started from /data/data-cache.json …` and the first refresh is `incremental`.
+The very first deploy after attaching still does one `full` pass (the volume starts empty). Gotchas: one volume
+per service, and don't mount at `/` or `/app` (use `/data`); a data-schema bump is detected and safely rebuilt
+once (`ignoring …/data-cache.json (schema …)`), no manual clearing needed.
+
 ## Endpoints
 
 - `/` — the dashboard
