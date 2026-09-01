@@ -503,20 +503,18 @@ function cumSeries(v){ // cumulative % per event for income/cost/net
     out.push({ts:e.ts, income:ci, cost:cc, net:cn, hasIC:e.incomePct!=null}); });
   return out;
 }
-// Least-squares fit of a cumulative %-curve over the visible window. Slope is %/second;
-// annualising it gives the APR that straight line represents. Anchored at the value carried
-// into the window so a zoomed view fits only what's on screen.
+// Least-squares fit of a cumulative %-curve, CONSTRAINED THROUGH THE CURVE'S ORIGIN — the point
+// where it starts on screen (t0, base), which in the default full view is the chart origin (0%).
+// Minimising Σ(dy - slope·dx)² with no free intercept gives slope = Σdx·dy / Σdx², so the trend is
+// a ray from the same point the data starts at. Slope is %/second; annualised it is the APR.
 function trendFit(a,key,t0,t1){
-  let base=0,seen=false;
-  a.forEach(p=>{ if(p.ts<t0){base=p[key];seen=true;} });
-  const pts=[{x:t0,y:base}];
-  a.forEach(p=>{ if(p.ts>=t0&&p.ts<=t1) pts.push({x:p.ts,y:p[key]}); });
-  if(pts.length<2) return null;
-  const n=pts.length, sx=pts.reduce((s,q)=>s+q.x,0), sy=pts.reduce((s,q)=>s+q.y,0),
-        sxx=pts.reduce((s,q)=>s+q.x*q.x,0), sxy=pts.reduce((s,q)=>s+q.x*q.y,0);
-  const den=n*sxx-sx*sx; if(!isFinite(den)||Math.abs(den)<1e-6) return null;
-  const slope=(n*sxy-sx*sy)/den, intercept=(sy-slope*sx)/n;
-  return {slope,intercept,apr:slope*365*86400,at:x=>intercept+slope*x};
+  let base=0;
+  a.forEach(p=>{ if(p.ts<t0) base=p[key]; });
+  let sxy=0,sxx=0,n=0;
+  a.forEach(p=>{ if(p.ts>=t0&&p.ts<=t1){ const dx=p.ts-t0, dy=p[key]-base; sxy+=dx*dy; sxx+=dx*dx; n++; } });
+  if(!n||!(sxx>0)) return null;
+  const slope=sxy/sxx;
+  return {slope,base,origin:t0,apr:slope*365*86400,at:x=>base+slope*(x-t0)};
 }
 
 function renderEconomics(arms){
@@ -561,7 +559,7 @@ function renderEconomics(arms){
   leg.innerHTML=arms.map((v,i)=>{const tr=trends[i];
     const apr=tr?` <span style="opacity:.7">&middot; ${(tr.apr>=0?'+':'')+tr.apr.toFixed(0)}% APR</span>`:'';
     return `<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel}${apr}</span>`;}).join('');
-  hint.innerHTML=(key==='net'?'cumulative performance (= income + cost) &middot; matches value/share':key==='income'?'income kept from rewards + LP fees (positive)':'value lost to swaps (negative)')+' &middot; % of vault value &middot; dashed = linear trend, slope annualised = APR';
+  hint.innerHTML=(key==='net'?'cumulative performance (= income + cost) &middot; matches value/share':key==='income'?'income kept from rewards + LP fees (positive)':'value lost to swaps (negative)')+' &middot; % of vault value &middot; dashed = trend from origin, slope annualised = APR';
 }
 
 function renderTable(arms){
