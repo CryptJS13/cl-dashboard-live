@@ -190,13 +190,18 @@ async function collectAll(rpcUrl, opts = {}) {
     const gaugeRaw = strat ? await callAt(strat, sel("rewardPool()"), head) : null;
     const gauge = gaugeRaw && gaugeRaw !== "0x" ? "0x" + gaugeRaw.slice(26) : null;
     const ctx = { t0, t1, d0, d1, isV2, strat };
+    // Optional per-vault start override (vaults.json "startTs"): ignore history before this time,
+    // e.g. to skip a seeding artifact at inception. bStart is an estimate (~2s blocks on Base) used
+    // only to place cold-start samples; the exact cut is the ts filter applied to the records below.
+    const startTs = v.startTs || 0;
+    const bStart = startTs && headTs > startTs ? Math.max(b0, head - Math.floor((headTs - startTs) / 2)) : b0;
 
     // ---- series: reuse cached history, append only samples past the previous head at a fixed cadence ----
     let series = (pv && Array.isArray(pv.series)) ? pv.series.slice() : [];
     const newBlocks = [];
-    if (!series.length) {                                   // cold start: SAMPLES points birth -> head
-      const step = Math.max(1, Math.floor((head - b0) / SAMPLES));
-      for (let b = b0 + 1; b <= head; b += step) newBlocks.push(b);
+    if (!series.length) {                                   // cold start: SAMPLES points start -> head
+      const step = Math.max(1, Math.floor((head - bStart) / SAMPLES));
+      for (let b = bStart + 1; b <= head; b += step) newBlocks.push(b);
       if (newBlocks.length && newBlocks[newBlocks.length - 1] !== head) newBlocks.push(head);
       else if (!newBlocks.length) newBlocks.push(head);
     } else {                                                // incremental: one point per CADENCE blocks of new time
@@ -204,10 +209,11 @@ async function collectAll(rpcUrl, opts = {}) {
       for (let b = lastB + CADENCE; b <= head; b += CADENCE) newBlocks.push(b);
     }
     for (const b of newBlocks) { const s = await buildSample(v, ctx, b); if (s) series.push(s); }
+    if (startTs) series = series.filter(s => s.ts >= startTs);
     if (series.length > MAXPTS) series = decimate(series, TARGETPTS);
 
     // ---- rebalance markers: reuse cached, scan only the new block range ----
-    const scanFrom = pv ? prevHead + 1 : b0;
+    const scanFrom = pv ? prevHead + 1 : bStart;
     const prevReb = (pv && Array.isArray(pv.rebalances)) ? pv.rebalances : [];
     const rebSeen = new Set(prevReb.map(r => r.block));
     const rebalances = prevReb.slice();
@@ -232,11 +238,12 @@ async function collectAll(rpcUrl, opts = {}) {
 
     const rec = { id: v.id, vault: v.vault, pool: v.pool, pair: v.pair, platform: v.platform, tvlUsd,
       design: isV2 ? "V2" : "V1", token0: t0, token1: t1, d0, d1, birth: b0, strat, gauge,
-      series, rebalances, events: (pv && Array.isArray(pv.events)) ? pv.events.slice() : [], usdcQuote: true };
+      series, rebalances: startTs ? rebalances.filter(r => r.ts >= startTs) : rebalances,
+      events: (pv && Array.isArray(pv.events)) ? pv.events.filter(e => !startTs || e.ts >= startTs) : [], usdcQuote: true };
 
     // ---- per-event income/cost/net: reuse cached events, decompose only events past the previous head ----
     if (series.length) {
-      const evFrom = pv ? prevHead + 1 : b0;
+      const evFrom = pv ? prevHead + 1 : bStart;
       const getLogs = (addr, topics, from) => rpc("eth_getLogs", [{ address: addr, topics, fromBlock: "0x" + from.toString(16), toBlock: "0x" + head.toString(16) }]).catch(() => []);
       let evs = [];
       if (evFrom <= head) {

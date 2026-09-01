@@ -503,6 +503,22 @@ function cumSeries(v){ // cumulative % per event for income/cost/net
     out.push({ts:e.ts, income:ci, cost:cc, net:cn, hasIC:e.incomePct!=null}); });
   return out;
 }
+// Least-squares fit of a cumulative %-curve over the visible window. Slope is %/second;
+// annualising it gives the APR that straight line represents. Anchored at the value carried
+// into the window so a zoomed view fits only what's on screen.
+function trendFit(a,key,t0,t1){
+  let base=0,seen=false;
+  a.forEach(p=>{ if(p.ts<t0){base=p[key];seen=true;} });
+  const pts=[{x:t0,y:base}];
+  a.forEach(p=>{ if(p.ts>=t0&&p.ts<=t1) pts.push({x:p.ts,y:p[key]}); });
+  if(pts.length<2) return null;
+  const n=pts.length, sx=pts.reduce((s,q)=>s+q.x,0), sy=pts.reduce((s,q)=>s+q.y,0),
+        sxx=pts.reduce((s,q)=>s+q.x*q.x,0), sxy=pts.reduce((s,q)=>s+q.x*q.y,0);
+  const den=n*sxx-sx*sx; if(!isFinite(den)||Math.abs(den)<1e-6) return null;
+  const slope=(n*sxy-sx*sy)/den, intercept=(sy-slope*sx)/n;
+  return {slope,intercept,apr:slope*365*86400,at:x=>intercept+slope*x};
+}
+
 function renderEconomics(arms){
   const host=document.getElementById('econ-chart');host.innerHTML='';
   const leg=document.getElementById('econ-legend');leg.innerHTML='';
@@ -534,10 +550,18 @@ function renderEconomics(arms){
     svg.appendChild(mk('path',{d,fill:'none',stroke:c,'stroke-width':2,'clip-path':'url(#plot)'}));
     const last=a[a.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last[key],lo,hi),r:3,fill:c}));
     idx.push(a.map(p=>({ts:p.ts,val:100+p[key]})));});
+  // linear trend per arm: slope annualised = the APR that arm is running at over the visible window
+  const trends=cum.map(a=>a.length?trendFit(a,key,t0,t1):null);
+  trends.forEach((tr,i)=>{ if(!tr)return; const c=cssv(C[i%4]);
+    svg.appendChild(mk('line',{x1:xscale(t0,t0,t1),y1:yscale(tr.at(t0),lo,hi),
+      x2:xscale(t1,t0,t1),y2:yscale(tr.at(t1),lo,hi),
+      stroke:c,'stroke-width':1.25,'stroke-dasharray':'5 4','stroke-opacity':.75,'clip-path':'url(#plot)'})); });
   attachHover(svg,arms,t0,t1,lo,hi,'perf',idx);
   host.appendChild(svg);
-  leg.innerHTML=arms.map((v,i)=>`<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel}</span>`).join('');
-  hint.innerHTML=(key==='net'?'cumulative performance (= income + cost) &middot; matches value/share':key==='income'?'income kept from rewards + LP fees (positive)':'value lost to swaps (negative)')+' &middot; % of vault value';
+  leg.innerHTML=arms.map((v,i)=>{const tr=trends[i];
+    const apr=tr?` <span style="opacity:.7">&middot; ${(tr.apr>=0?'+':'')+tr.apr.toFixed(0)}% APR</span>`:'';
+    return `<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel}${apr}</span>`;}).join('');
+  hint.innerHTML=(key==='net'?'cumulative performance (= income + cost) &middot; matches value/share':key==='income'?'income kept from rewards + LP fees (positive)':'value lost to swaps (negative)')+' &middot; % of vault value &middot; dashed = linear trend, slope annualised = APR';
 }
 
 function renderTable(arms){

@@ -103,3 +103,9 @@ once (`ignoring …/data-cache.json (schema …)`), no manual clearing needed.
 
 Edit `vaults.json` (`{id, vault, pool, pair, platform}` per entry). Everything else — token
 addresses, decimals, strategy, gauge, V1/V2 design — is discovered on-chain.
+
+Optional per-entry `startTs` (unix seconds) ignores all history before that time for that vault —
+useful when a vault's first days are a seeding artifact rather than real performance. It applies to
+samples, events and rebalance markers, and takes effect on the next refresh (no rebuild needed,
+since it also trims what's already cached). `aeroCL_cbETH_ETH_new` uses it to start at 2026-06-01,
+skipping an inception pps spike (1.00 -> 1.22 -> 1.00) that otherwise distorted its whole series.
