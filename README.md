@@ -30,9 +30,13 @@ lands and remembers each viewer's pool, timeframe and chart choices.
 
 Designs it knows: `CLVault` (V1), `CLVaultV2`, `CLVaultV3` (including the gauge strategy that sells
 AERO for USDC and sends it to the vault) and `ParkedVault`. Vaults on the same pool are shown together.
+It works with the gauges of Aerodrome's deployment from 2026-10-22 too: their claims emit
+`EmissionsClaimed` rather than `ClaimRewards`, so for a V3 vault the harvests and AERO income are read
+from its strategy's own `RewardSold` events, and the parked vault's from its `Harvested` events.
 
 The two cbBTC/USDC experiment vaults, once deployed (addresses from their deploy scripts; `startTs` is
-the first deposit's time, as both design notes suggest):
+the first deposit's time, as both design notes suggest). Their pool is found on chain, whichever new
+cbBTC/USDC pool is chosen; the old ids are kept, though at spacing 50 the width is 32 spacings:
 
 ```json
 {"id": "aeroCL_USDC_cbBTC_16edge", "vault": "<vault A>", "label": "always in, edge re-entry", "startTs": <first deposit>},

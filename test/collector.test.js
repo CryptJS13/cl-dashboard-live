@@ -50,7 +50,7 @@ test("fills an hourly grid from the vault's birth to the head block", () => {
   }
 });
 
-test("vault A: every re-entry and harvest, with AERO paid in USDC and the re-entry cost", () => {
+test("vault A: every re-entry and harvest (found from its own RewardSold, not the gauge), AERO paid in USDC, re-entry cost", () => {
   const a = data.vaults[0], T = chain.truth.A;
   const reb = a.events.filter(e => e.kind === "rebalance"), harv = a.events.filter(e => e.kind === "harvest");
   assert.equal(reb.length, T.reentries); assert.equal(harv.length, T.harvests);

@@ -102,7 +102,8 @@ function buildChain(opts = {}) {
         const tx = txh();
         const aeroAmt = a.aero / aeroUsd * 1e12;               // AERO raw (18 dec) from raw USDC worth
         const paid = a.aero * 0.9, fee0 = a.fees * 0.45, fee1 = a.fees * 0.45 * P;
-        if (harvest) emit(blk, tx, ADDR.GAUGE, [T.claim, topicAddr(ADDR.SA)], U(aeroAmt));
+        // the gauge's own claim event: vault A runs on a new gauge, which does not emit ClaimRewards
+        if (harvest) emit(blk, tx, ADDR.GAUGE, [utils.id("EmissionsClaimed(address,address,uint256)"), topicAddr(ADDR.SA)], U(aeroAmt));
         emit(blk, tx, ADDR.AERO, [T.transfer, topicAddr(ADDR.GAUGE), topicAddr(ADDR.SA)], U(aeroAmt));
         emit(blk, tx, ADDR.SA, [T.rewardSold], coder.encode(["uint256", "uint256", "uint256", "uint256"], [BIG(aeroAmt), BIG(a.aero), BIG(a.aero * 0.1), BIG(paid)]));
         emit(blk, tx, ADDR.SA, [T.feesCollected], coder.encode(["uint256", "uint256", "uint256", "uint256"], [BIG(a.fees * 0.5), BIG(a.fees * 0.5 * P), BIG(a.fees * 0.05), BIG(a.fees * 0.05 * P)]));

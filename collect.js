@@ -303,9 +303,13 @@ async function collectAll(rpcUrls, opts = {}) {
       }
     } else {
       for (const l of await getLogs(rpc, { address: m.vault, topics: [[T.rebV2, T.rebV1]] }, from, to)) add(l, "rebalance");
+      // harvests: the gauge's ClaimRewards to the strategy (the gauges before Aerodrome's 2026-10-22 deployment);
+      // for a strategy that sells AERO, also its own RewardSold, which does not depend on the gauge's events
+      // (the new gauges emit EmissionsClaimed instead)
       const pairs = new Map();
       for (const [sa, s] of Object.entries(m.strategies)) if (s.gauge) pairs.set(s.gauge + ":" + sa, [s.gauge, sa]);
       for (const [g, sa] of pairs.values()) for (const l of await getLogs(rpc, { address: g, topics: [T.claim, "0x" + pad(sa)] }, from, to)) add(l, "harvest");
+      for (const [sa, s] of Object.entries(m.strategies)) if (s.rewardSale) for (const l of await getLogs(rpc, { address: sa, topics: [T.rewardSold] }, from, to)) add(l, "harvest");
     }
     const byTx = {};
     for (const e of evs) { const cur = byTx[e.tx]; if (!cur || (e.kind !== "harvest" && cur.kind === "harvest")) byTx[e.tx] = e; }
