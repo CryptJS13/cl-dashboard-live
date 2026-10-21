@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CL Vault Monitor</title>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -12,102 +11,100 @@
 :root{
   --bg:#eef1f4; --surface:#ffffff; --surface-2:#f4f6f8; --rule:#dfe4ea; --rule-2:#ebeef2;
   --ink:#12161c; --ink-2:#414a55; --muted:#6b7480;
-  --accent:#0f6d80;
-  --up:#0f7a4d; --up-soft:#e2f0e8; --down:#b23b2b; --down-soft:#f7e6e2;
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
-  --price:#5b6572; --band-a:0.10;
-  --grid:#e6eaee; --crosshair:#9aa4b0;
+  --accent:#0f6d80; --on-accent:#ffffff;
+  --up:#0f7a4d; --down:#b23b2b; --warn-bg:#fff6e0; --warn-ink:#6b4e00;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#a86ad6;
+  --price:#5b6572; --band-a:0.10; --grid:#e6eaee; --crosshair:#9aa4b0;
   --shadow:0 1px 2px rgba(18,22,28,.05),0 10px 30px -16px rgba(18,22,28,.2);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0b0e12; --surface:#141a20; --surface-2:#1a212a; --rule:#28313b; --rule-2:#212a33;
-  --ink:#e9edf1; --ink-2:#bcc6d0; --muted:#8592a0;
-  --accent:#3fb6c9;
-  --up:#5fc292; --up-soft:#12281c; --down:#e5897d; --down-soft:#361a14;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
-  --price:#8c96a3; --band-a:0.16;
-  --grid:#232c35; --crosshair:#5b6675;
+  --ink:#e9edf1; --ink-2:#bcc6d0; --muted:#8592a0; --accent:#3fb6c9; --on-accent:#06222a;
+  --up:#5fc292; --down:#e5897d; --warn-bg:#2b2410; --warn-ink:#e8cf8a;
+  --s1:#3987e5; --s2:#e0703f; --s3:#22b583; --s4:#b384e6;
+  --price:#8c96a3; --band-a:0.17; --grid:#232c35; --crosshair:#5b6675;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 34px -18px rgba(0,0,0,.7);
 }}
 :root[data-theme="dark"]{
   --bg:#0b0e12; --surface:#141a20; --surface-2:#1a212a; --rule:#28313b; --rule-2:#212a33;
-  --ink:#e9edf1; --ink-2:#bcc6d0; --muted:#8592a0; --accent:#3fb6c9;
-  --up:#5fc292; --up-soft:#12281c; --down:#e5897d; --down-soft:#361a14;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
-  --price:#8c96a3; --band-a:0.16; --grid:#232c35; --crosshair:#5b6675;
+  --ink:#e9edf1; --ink-2:#bcc6d0; --muted:#8592a0; --accent:#3fb6c9; --on-accent:#06222a;
+  --up:#5fc292; --down:#e5897d; --warn-bg:#2b2410; --warn-ink:#e8cf8a;
+  --s1:#3987e5; --s2:#e0703f; --s3:#22b583; --s4:#b384e6;
+  --price:#8c96a3; --band-a:0.17; --grid:#232c35; --crosshair:#5b6675;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 34px -18px rgba(0,0,0,.7);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:70rem;margin:0 auto;padding:2rem 1.2rem 5rem}
+.wrap{max-width:72rem;margin:0 auto;padding:2rem 1.2rem 5rem}
+@media (max-width:640px){.wrap{padding:1.2rem 1rem 4rem}}
 .mono{font-family:"IBM Plex Mono",monospace} h1,h2,h3{font-family:"Archivo",sans-serif}
-header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;border-bottom:1px solid var(--rule);padding-bottom:1.2rem;margin-bottom:1.3rem}
+header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;border-bottom:1px solid var(--rule);padding-bottom:1.2rem;margin-bottom:1rem}
 .eyebrow{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 .4rem}
 h1{font-size:clamp(1.5rem,3.5vw,2.1rem);margin:0;font-weight:800;letter-spacing:-.02em}
-.gen{font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:var(--muted);text-align:right}
-.hstats{display:flex;align-items:flex-end;gap:1.4rem}
+.hstats{display:flex;align-items:flex-end;gap:1.2rem;flex-wrap:wrap}
+.gen{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--muted);text-align:right;line-height:1.45}
 .tvl{text-align:right}
-.tvl .n{font-family:"Archivo",sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+.tvl .n{font-family:"Archivo",sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
 .tvl .l{display:block;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:.3rem}
-
-.pairs{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.4rem}
-.pill{font-family:"IBM Plex Sans",sans-serif;font-size:.83rem;font-weight:500;padding:.4rem .8rem;border-radius:.45rem;border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);cursor:pointer;transition:all .12s}
+.status{background:var(--warn-bg);color:var(--warn-ink);border-radius:.45rem;padding:.55rem .8rem;font-size:.8rem;margin:0 0 1rem;line-height:1.5}
+.pairs{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem}
+.pill{font:500 .83rem "IBM Plex Sans",sans-serif;padding:.4rem .8rem;border-radius:.45rem;border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);cursor:pointer;transition:border-color .12s,color .12s}
 .pill:hover{border-color:var(--accent);color:var(--ink)}
-.pill[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
-:root[data-theme="dark"] .pill[aria-pressed="true"],:root:not([data-theme="light"]) .pill[aria-pressed="true"]{color:#06222a}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill[aria-pressed="true"]{color:#06222a}}
-
-.zoombar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin:-.3rem 0 1.3rem}
-.zoombar .zl{color:var(--muted);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;font-weight:600}
-.zpills{display:flex;gap:.3rem}
-.zoombar .zhint{color:var(--muted);font-size:.74rem;margin-left:auto}
-@media (max-width:640px){.zoombar .zhint{display:none}}
-.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));gap:.55rem;margin-bottom:1.5rem}
-.mcard{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--arm);border-radius:.5rem;padding:.7rem .8rem;box-shadow:var(--shadow)}
-.mcard .arm{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--arm);font-weight:600;margin-bottom:.35rem;display:flex;align-items:center;gap:.35rem}
-.dot{width:.6rem;height:.6rem;border-radius:.15rem;background:var(--arm);flex:none}
-.mcard .big{font-family:"Archivo",sans-serif;font-size:1.4rem;font-weight:700;letter-spacing:-.02em;line-height:1}
-.mcard .big.up{color:var(--up)} .mcard .big.down{color:var(--down)}
-.mcard .apr{font-family:"IBM Plex Mono",monospace;font-size:.82rem;font-weight:600;margin-top:.2rem}
-.mcard .apr.up{color:var(--up)} .mcard .apr.down{color:var(--down)}
-.mcard .apr .lbl{color:var(--muted);font-weight:400;font-size:.7rem}
-.mcard .sub{font-size:.72rem;color:var(--muted);margin-top:.3rem;line-height:1.5}
-.mcard .sub b{color:var(--ink-2);font-weight:600;font-variant-numeric:tabular-nums}
-
-.chartcard{background:var(--surface);border:1px solid var(--rule);border-radius:.6rem;padding:1rem 1.1rem 1.1rem;margin-bottom:1.1rem;box-shadow:var(--shadow)}
-.chead{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.6rem;margin-bottom:.2rem}
+.pill[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.zoombar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin:0 0 1.1rem}
+.zl{color:var(--muted);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+.zpills,.toggles{display:flex;gap:.3rem;flex-wrap:wrap}
+.zhint{color:var(--muted);font-size:.74rem;margin-left:auto}
+@media (max-width:640px){.zhint{display:none}}
+.tg{font:400 .74rem "IBM Plex Sans",sans-serif;padding:.3rem .55rem;border-radius:.35rem;border:1px solid var(--rule);background:var(--surface-2);color:var(--muted);cursor:pointer}
+.tg:hover{color:var(--ink)}
+.tg[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(15.5rem,1fr));gap:.6rem;margin-bottom:1.3rem}
+.mcard{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--arm);border-radius:.5rem;padding:.75rem .85rem;box-shadow:var(--shadow);min-width:0}
+.mcard .arm{font-size:.8rem;color:var(--ink);font-weight:600;margin-bottom:.45rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.mcard .tag{font:500 .66rem "IBM Plex Mono",monospace;color:var(--muted);border:1px solid var(--rule);border-radius:.25rem;padding:.05rem .3rem}
+.dot{width:.62rem;height:.62rem;border-radius:.15rem;background:var(--arm);flex:none}
+.big{font-family:"Archivo",sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.02em;line-height:1}
+.up{color:var(--up)} .down{color:var(--down)}
+.bigsub{font-size:.72rem;color:var(--muted);margin:.25rem 0 .55rem}
+.bigsub b{font-family:"IBM Plex Mono",monospace;font-weight:600}
+.kv{display:grid;grid-template-columns:1fr auto auto;gap:.18rem .75rem;font-size:.74rem;line-height:1.35}
+.kv .k{color:var(--muted);min-width:0} .kv .v{font-family:"IBM Plex Mono",monospace;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv .v.y{min-width:3.6rem} .kv .v.wide{grid-column:2/-1} .kv .v.h{font:600 .6rem "IBM Plex Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.kv .sep{grid-column:1/-1;border-top:1px solid var(--rule-2);margin:.2rem 0}
+.chartcard{background:var(--surface);border:1px solid var(--rule);border-radius:.6rem;padding:1rem 1.1rem 1.1rem;margin-bottom:1.1rem;box-shadow:var(--shadow);min-width:0}
+@media (max-width:640px){.chartcard{padding:.85rem .7rem .9rem}}
+.chead{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.6rem;margin-bottom:.25rem}
 .chead h3{font-size:1rem;margin:0;font-weight:700;letter-spacing:-.01em}
-.chead .hint{font-size:.78rem;color:var(--muted)}
-.toggles{display:flex;gap:.3rem;flex-wrap:wrap}
-.tg{font-size:.74rem;padding:.28rem .55rem;border-radius:.35rem;border:1px solid var(--rule);background:var(--surface-2);color:var(--muted);cursor:pointer}
-.tg[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tg[aria-pressed="true"]{color:#06222a}}
-:root[data-theme="dark"] .tg[aria-pressed="true"]{color:#06222a}
-.legend{display:flex;flex-wrap:wrap;gap:.8rem;margin:.5rem 0 .2rem;font-size:.78rem}
+.hint{font-size:.77rem;color:var(--muted);line-height:1.45;margin-top:.15rem}
+.legend{display:flex;flex-wrap:wrap;gap:.35rem .9rem;margin:.55rem 0 .3rem;font-size:.77rem}
 .legend span{display:inline-flex;align-items:center;gap:.35rem;color:var(--ink-2)}
 .legend .sw{width:.85rem;height:.28rem;border-radius:.14rem;background:var(--c)}
-.legend .sw.line{background:none;border-top:2px dashed var(--price);height:0;width:1rem}
 .legend .sw.dash{background:none;border-top:2px dashed var(--c);height:0;width:1.1rem;border-radius:0}
-svg{display:block;width:100%;height:auto;overflow:visible}
-.axis{font-family:"IBM Plex Mono",monospace;font-size:10px;fill:var(--muted)}
+.legend .sw.box{height:.6rem;width:.85rem;opacity:.5}
+.legend .apr{color:var(--muted)}
+.plot{position:relative;touch-action:pan-y}
+svg{display:block;overflow:visible}
+.axis{font:10.5px "IBM Plex Mono",monospace;fill:var(--muted)}
 .gridline{stroke:var(--grid);stroke-width:1}
-.tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--rule);border-radius:.4rem;padding:.5rem .6rem;font-size:.75rem;box-shadow:var(--shadow);z-index:20;opacity:0;transition:opacity .08s;max-width:15rem}
+.tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--rule);border-radius:.4rem;padding:.5rem .6rem;font-size:.75rem;box-shadow:var(--shadow);z-index:20;opacity:0;transition:opacity .08s;min-width:11rem;max-width:17rem}
 .tip .t-date{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:.68rem;margin-bottom:.3rem}
 .tip .t-row{display:flex;justify-content:space-between;gap:.9rem;font-variant-numeric:tabular-nums}
-.tip .t-row .k{display:inline-flex;align-items:center;gap:.3rem;color:var(--ink-2)}
-.tip .t-row .k .sw{width:.55rem;height:.55rem;border-radius:.12rem;background:var(--c)}
-.tip .t-row .v{font-family:"IBM Plex Mono",monospace;color:var(--ink);font-weight:500}
-footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--rule);color:var(--muted);font-size:.78rem;line-height:1.6}
-.empty{padding:2.5rem 1rem;text-align:center;color:var(--muted);font-size:.9rem}
-.etable{max-height:21rem;overflow:auto;border:1px solid var(--rule);border-radius:.45rem}
-.etable table{width:100%;border-collapse:collapse;font-size:.8rem}
-.etable th{position:sticky;top:0;background:var(--surface-2);text-align:right;padding:.45rem .65rem;font-size:.66rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule);white-space:nowrap}
+.tip .t-row .k{display:inline-flex;align-items:center;gap:.3rem;color:var(--ink-2);min-width:0}
+.tip .t-row .k .sw{width:.55rem;height:.55rem;border-radius:.12rem;background:var(--c);flex:none}
+.tip .t-row .v{font-family:"IBM Plex Mono",monospace;color:var(--ink);font-weight:500;white-space:nowrap}
+.empty{padding:2.2rem 1rem;text-align:center;color:var(--muted);font-size:.88rem}
+.etable{max-height:22rem;overflow:auto;border:1px solid var(--rule);border-radius:.45rem}
+.etable table{width:100%;border-collapse:collapse;font-size:.79rem}
+.etable th{position:sticky;top:0;background:var(--surface-2);text-align:right;padding:.45rem .6rem;font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--rule);white-space:nowrap}
 .etable th:nth-child(-n+3),.etable td:nth-child(-n+3){text-align:left}
-.etable td{padding:.38rem .65rem;text-align:right;border-bottom:1px solid var(--rule-2);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.etable td{padding:.36rem .6rem;text-align:right;border-bottom:1px solid var(--rule-2);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}
 .etable tr:last-child td{border-bottom:none}
-.etable .kind{font-weight:600;display:inline-flex;align-items:center;gap:.3rem}
-.etable .armdot{width:.55rem;height:.55rem;border-radius:.12rem;display:inline-block}
-.etable .pos{color:var(--up)} .etable .neg{color:var(--down)} .etable .mut{color:var(--muted)}
+.armdot{width:.55rem;height:.55rem;border-radius:.12rem;display:inline-block;margin-right:.3rem;vertical-align:-1px}
+.pos{color:var(--up)} .neg{color:var(--down)} .mut{color:var(--muted)}
+footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--rule);color:var(--muted);font-size:.78rem;line-height:1.65}
+footer p{margin:0 0 .6rem} footer b{color:var(--ink-2);font-weight:600}
+.loading{padding:5rem 1rem;text-align:center;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -121,485 +118,599 @@ footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--rule);color:v
   <div class="hstats">
     <div class="tvl"><span class="n" id="tvl">&ndash;</span><span class="l" id="tvl-l">total TVL</span></div>
     <div class="gen" id="gen"></div>
+    <button class="tg" id="theme" type="button" title="Switch light / dark">Theme: auto</button>
   </div>
 </header>
-<div class="pairs" id="pairs"></div>
-<div class="metrics" id="metrics"></div>
+<div class="status" id="status" hidden></div>
+<div id="app"><div class="loading" id="loading">Loading&hellip;</div></div>
+<template id="tpl">
+<div class="pairs" id="pairs" role="group" aria-label="Pool"></div>
 <div class="zoombar">
   <span class="zl">Timeframe</span>
   <div class="zpills" id="zpresets"></div>
-  <span class="zhint">scroll to zoom &middot; drag to pan &middot; double-click to reset</span>
+  <span class="zhint">pinch or &#8984;/ctrl + scroll to zoom &middot; drag to pan &middot; double-click to reset</span>
 </div>
+<div class="metrics" id="metrics"></div>
 
-<div class="chartcard">
-  <div class="chead">
-    <div><h3>Price &amp; vault ranges</h3><div class="hint" id="price-hint"></div></div>
-  </div>
+<section class="chartcard">
+  <div class="chead"><div><h3>Price and ranges</h3><div class="hint" id="price-hint"></div></div></div>
   <div class="legend" id="price-legend"></div>
-  <div id="price-chart"></div>
-</div>
+  <div class="plot" id="price-chart"></div>
+</section>
 
-<div class="chartcard">
+<section class="chartcard">
   <div class="chead">
-    <div><h3>Performance</h3><div class="hint">indexed to 100 at each vault's start</div></div>
-    <div class="toggles" id="denoms"></div>
+    <div><h3>Performance</h3><div class="hint" id="perf-hint"></div></div>
+    <div class="toggles" id="measures"></div>
   </div>
   <div class="legend" id="perf-legend"></div>
-  <div id="perf-chart"></div>
-</div>
+  <div class="plot" id="perf-chart"></div>
+</section>
 
-<div class="chartcard">
+<section class="chartcard">
   <div class="chead">
-    <div><h3>LP vs HOLD</h3><div class="hint" id="lph-hint">per-share vault value vs holding 100% of either token &middot; indexed to 100</div></div>
-  </div>
-  <div class="legend" id="lph-legend"></div>
-  <div id="lph-chart"></div>
-</div>
-
-<div class="chartcard">
-  <div class="chead">
-    <div><h3>Realised income &amp; cost</h3><div class="hint" id="econ-hint">per-event, cumulative &middot; performance = income + cost (cost is negative)</div></div>
-    <div class="toggles" id="econ-metric"></div>
+    <div><h3>Income and cost</h3><div class="hint" id="econ-hint"></div></div>
+    <div class="toggles" id="econs"></div>
   </div>
   <div class="legend" id="econ-legend"></div>
-  <div id="econ-chart"></div>
-</div>
+  <div class="plot" id="econ-chart"></div>
+</section>
 
-<div class="chartcard">
-  <div class="chead"><div><h3>Events</h3><div class="hint">rebalances &amp; harvests &middot; value in the pair's token0</div></div></div>
+<section class="chartcard">
+  <div class="chead"><div><h3>Events</h3><div class="hint" id="events-hint"></div></div></div>
   <div id="events-table"></div>
-</div>
-
+</section>
 <footer id="foot"></footer>
+</template>
 </div>
 <div class="tip" id="tip"></div>
 
+<script src="/metrics.js"></script>
 <script>
-const DATA = /*__DATA__*/ {"vaults":[],"generatedAtTs":0,"generatedAtBlock":0};
-const C = ['--s1','--s2','--s3','--s4'];
+"use strict";
+const M = window.CLMetrics;
+const COLORS = ['--s1', '--s2', '--s3', '--s4'];
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+const DAY = 86400;
 
-// group vaults by pair, sort arms by width
-function parseArm(v){
-  const m = v.id.replace(/^aeroCL_/,'');
-  // e.g. USDC_NVDAc_20  or  WETH_cbBTC_4w  or  EURC_USDC_1w
-  const parts = m.split('_');
-  const wtok = parts[parts.length-1];
-  let width = parseInt(wtok,10), wlabel = wtok;
-  const hasWidth = !isNaN(width);
-  const pair = (hasWidth ? parts.slice(0,-1) : parts.filter(x=>x!=='new')).join('/');
-  if(!hasWidth){ width = 0; wlabel = 'single'; }
-  return {pair, width, wlabel};
+// ---------------------------------------------------------------------------------------- state
+const st = { view: null, groups: [], byKey: {}, cur: null, measure: 'hold', econ: 'net', preset: null, viewT0: null, viewT1: null, full: [0, 0], theme: 'auto' };
+function save() { try { localStorage.setItem('cldash2', JSON.stringify({ cur: st.cur, measure: st.measure, econ: st.econ, preset: st.preset, viewT0: st.preset == null ? st.viewT0 : null, viewT1: st.preset == null ? st.viewT1 : null, theme: st.theme })); } catch (e) {} }
+function restore() { try { const s = JSON.parse(localStorage.getItem('cldash2') || '{}'); Object.assign(st, { cur: s.cur || null, measure: s.measure || 'hold', econ: s.econ || 'net', preset: s.preset != null ? s.preset : null, viewT0: s.viewT0 != null ? s.viewT0 : null, viewT1: s.viewT1 != null ? s.viewT1 : null, theme: s.theme || 'auto' }); } catch (e) {} }
+restore();
+applyTheme();
+
+// ---------------------------------------------------------------------------------------- formatting
+const pct = (x, d = 2) => x == null || !isFinite(x) ? '&ndash;' : (x >= 0 ? '+' : '&minus;') + Math.abs(x).toFixed(d) + '%';
+const cls = x => x == null ? 'mut' : x >= 0 ? 'up' : 'down';
+const fmtNum = (x, d) => x == null ? '&ndash;' : x.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+const pxDec = p => p >= 1000 ? 0 : p >= 100 ? 2 : p >= 1 ? 4 : 6;
+const utc = t => new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ');
+const days = d => d >= 10 ? d.toFixed(0) + ' d' : d >= 1 ? d.toFixed(1) + ' d' : (d * 24).toFixed(0) + ' h';
+const aprTxt = x => x == null || !isFinite(x) ? '' : (x >= 0 ? '+' : '&minus;') + (Math.abs(x) >= 100 ? Math.abs(x).toFixed(0) : Math.abs(x).toFixed(1)) + '% a year';
+const KIND = { r: '&#9650; rebalance', h: '&#9670; harvest', enter: '&#9679; entered the pool', exit: '&#9675; left the pool', replace: '&#9650; moved range', rebalance: '&#9650; rebalance' };
+
+// ---------------------------------------------------------------------------------------- data
+async function load(first) {
+  let r;
+  try { r = await fetch('/api/view', { cache: 'no-store' }); } catch (e) { return retry('Could not reach the server; retrying.'); }
+  if (r.status === 503) { const j = await r.json().catch(() => ({})); return retry('Collecting on-chain data for the first time. This page loads by itself when it is ready.' + (j.lastError ? ' Last error: ' + String(j.lastError).slice(0, 160) : '')); }
+  if (!r.ok) return retry('The server answered ' + r.status + '; retrying.');
+  const v = await r.json();
+  st.view = v;
+  st.groups = groupArms(v);
+  if (first) mount();
+  if (!st.cur || !st.byKey[st.cur]) st.cur = st.groups.length ? (st.groups.find(g => g.name === 'USDC/NVDAc') || st.groups[0]).key : null;
+  renderAll();
 }
-const groups = {};
-DATA.vaults.forEach(v=>{ if(!v.series||!v.series.length) return; const a=parseArm(v); v._arm=a;
-  (groups[a.pair]=groups[a.pair]||[]).push(v); });
-Object.values(groups).forEach(g=>g.sort((a,b)=>a._arm.width-b._arm.width));
-const pairNames = Object.keys(groups).sort();
+function retry(msg) { const l = $('loading'); if (l) l.textContent = msg; setTimeout(() => load(!$('pairs')), 8000); }
 
-let curPair = pairNames.includes('USDC/NVDAc')?'USDC/NVDAc':pairNames[0];
-let denom = 'vps';
-let econMetric = 'net';
-let viewT0=null, viewT1=null, curFull=[0,0], panState=null, rafPending=false;
-function saveState(){try{localStorage.setItem('cldash',JSON.stringify({curPair,denom,econMetric,viewT0,viewT1}));}catch(e){}}
-function loadState(){try{const s=JSON.parse(localStorage.getItem('cldash')||'{}');
-  if(s.curPair&&pairNames.includes(s.curPair))curPair=s.curPair;
-  if(s.denom)denom=s.denom; if(s.econMetric)econMetric=s.econMetric;
-  if(s.viewT0!=null)viewT0=s.viewT0; if(s.viewT1!=null)viewT1=s.viewT1;}catch(e){}}
-loadState();
+function groupArms(v) {
+  const g = {};
+  v.vaults.forEach(raw => {
+    const a = M.decode(raw);
+    if (!a.t.length) return;
+    a.price = i => M.price(a, i);
+    const k = a.pool || a.pair;
+    (g[k] = g[k] || { key: k, arms: [], sym0: a.sym0, sym1: a.sym1, d0: a.d0, d1: a.d1, spacing: a.spacing }).arms.push(a);
+  });
+  const list = Object.values(g);
+  const nameCount = {};
+  list.forEach(x => { x.name = x.sym0 + '/' + x.sym1; nameCount[x.name] = (nameCount[x.name] || 0) + 1; });
+  list.forEach(x => {
+    if (nameCount[x.name] > 1 && x.spacing) x.name += ' · CL' + x.spacing;
+    x.arms.sort((p, q) => (p.widthTicks || 0) - (q.widthTicks || 0) || String(p.label).localeCompare(String(q.label)));
+    x.arms.forEach((a, i) => { a.color = COLORS[i % COLORS.length]; a.name = armName(a); });
+  });
+  list.sort((p, q) => p.name.localeCompare(q.name));
+  st.byKey = {}; list.forEach(x => { st.byKey[x.key] = x; });
+  return list;
+}
+function armName(a) {
+  if (a.label) return a.label;
+  return a.widthPct != null ? a.widthPct.toFixed(2) + '%' : a.id;
+}
+const designTag = a => a.design;
 
-document.getElementById('gen').innerHTML = 'generated<br>'+new Date(DATA.generatedAtTs*1000).toISOString().slice(0,16).replace('T',' ')+' UTC';
-{const priced=DATA.vaults.filter(v=>v.tvlUsd!=null);const tvl=priced.reduce((s,v)=>s+v.tvlUsd,0);
- const miss=DATA.vaults.length-priced.length;
- document.getElementById('tvl').textContent='$'+tvl.toLocaleString('en-US',{maximumFractionDigits:0});
- document.getElementById('tvl-l').textContent='total TVL &middot; '+priced.length+' vaults';
- document.getElementById('tvl-l').innerHTML='total TVL &middot; '+priced.length+' vaults'+(miss?' (+'+miss+' unpriced)':'');}
+// ---------------------------------------------------------------------------------------- page skeleton
+const ZOOM = [['1d', DAY], ['1wk', 7 * DAY], ['1mo', 30 * DAY], ['3mo', 90 * DAY], ['All', null]];
+const MEASURES = [['hold', 'vs holding 50/50'], ['marked', 'Marked'], ['booked', 'Share price'], ['t0', 'In token0'], ['t1', 'In token1']];
+const ECONS = [['net', 'Net'], ['aero', 'AERO'], ['fee', 'Swap fees'], ['lend', 'Lending'], ['cost', 'Cost at rebalances']];
+function mount() {
+  const app = $('app');
+  app.innerHTML = '';
+  app.appendChild($('tpl').content.cloneNode(true));
+  ZOOM.forEach(([label, win]) => btn($('zpresets'), label, () => setPreset(win), b => { b.dataset.win = win == null ? 'all' : win; }));
+  MEASURES.forEach(([k, label]) => btn($('measures'), label, () => { st.measure = k; renderAll(); }, b => { b.dataset.k = k; }));
+  ECONS.forEach(([k, label]) => btn($('econs'), label, () => { st.econ = k; renderAll(); }, b => { b.dataset.k = k; }));
+  window.addEventListener('resize', debounce(() => renderCharts(), 150));
+}
+function btn(host, label, onclick, more) { const b = document.createElement('button'); b.type = 'button'; b.className = 'tg'; b.textContent = label; b.onclick = onclick; if (more) more(b); host.appendChild(b); return b; }
+function debounce(f, ms) { let t; return () => { clearTimeout(t); t = setTimeout(f, ms); }; }
 
-// pair pills
-const pairsEl = document.getElementById('pairs');
-pairNames.forEach(p=>{ const b=document.createElement('button'); b.className='pill'; b.textContent=p;
-  b.setAttribute('aria-pressed', p===curPair); b.onclick=()=>{curPair=p; viewT0=viewT1=null; renderAll(); };
-  pairsEl.appendChild(b); });
+// ---------------------------------------------------------------------------------------- window
+function curGroup() { return st.byKey[st.cur] || null; }
+function fullDomain(arms) { let a = Infinity, b = -Infinity; arms.forEach(x => { a = Math.min(a, x.t[0]); b = Math.max(b, x.t[x.t.length - 1]); }); return [a, b]; }
+function windowNow() {
+  const [f0, f1] = st.full;
+  if (st.preset != null) return [Math.max(f0, f1 - st.preset), f1];
+  if (st.viewT0 != null && st.viewT1 != null) return [Math.max(f0, st.viewT0), Math.min(f1, st.viewT1)];
+  return [f0, f1];
+}
+function setPreset(win) { st.preset = win; st.viewT0 = st.viewT1 = null; scheduleRender(true); }
+function setView(a, b, keepSpan) {
+  const [f0, f1] = st.full; const full = f1 - f0 || 1;
+  if (!keepSpan) { const minS = Math.max(full / 600, 3 * 3600); let span = Math.min(Math.max(b - a, minS), full); const c = (a + b) / 2; a = c - span / 2; b = c + span / 2; }
+  const span = b - a; if (a < f0) { a = f0; b = f0 + span; } if (b > f1) { b = f1; a = f1 - span; }
+  a = Math.max(a, f0); b = Math.min(b, f1);
+  st.preset = null;
+  if (a <= f0 + 1 && b >= f1 - 1) { st.viewT0 = st.viewT1 = null; } else { st.viewT0 = a; st.viewT1 = b; }
+  scheduleRender(true);
+}
+let raf = false, rafAll = false;
+function scheduleRender(all) { rafAll = rafAll || all; if (raf) return; raf = true; requestAnimationFrame(() => { raf = false; const a = rafAll; rafAll = false; if (a) renderAll(); else renderCharts(); }); }
 
-// denom toggles
-const DENOMS=[['vps','Value / share (L)'],['valueL','Total value (L)'],['val0','Value in token0'],['val1','Value in token1']];
-const denomsEl=document.getElementById('denoms');
-DENOMS.forEach(([k,label])=>{ const b=document.createElement('button'); b.className='tg'; b.textContent=label;
-  b.setAttribute('aria-pressed',k===denom); b.onclick=()=>{denom=k; renderAll();}; b.dataset.k=k; denomsEl.appendChild(b); });
-const ECON=[['net','Performance'],['income','Income'],['cost','Cost']];
-const econEl=document.getElementById('econ-metric');
-ECON.forEach(([k,label])=>{const b=document.createElement('button');b.className='tg';b.textContent=label;
-  b.setAttribute('aria-pressed',k===econMetric);b.onclick=()=>{econMetric=k;renderAll();};b.dataset.k=k;econEl.appendChild(b);});
-const ZOOM=[['3mo',7776000],['1mo',2592000],['1wk',604800],['1d',86400],['all',null]];
-const zpEl=document.getElementById('zpresets');
-ZOOM.forEach(([label,win])=>{const b=document.createElement('button');b.className='tg';b.textContent=label==='all'?'All':label;
-  b.dataset.win=win===null?'all':win;b.onclick=()=>setPreset(win);zpEl.appendChild(b);});
-function scheduleRender(){ if(rafPending)return; rafPending=true; requestAnimationFrame(()=>{rafPending=false; renderCharts(); syncZoom(); saveState();}); }
-function clampView(a,b,keepSpan){ const [f0,f1]=curFull; const full=f1-f0||1;
-  if(!keepSpan){ const minS=Math.max(full/400,300); let span=Math.min(Math.max(b-a,minS),full); const c=(a+b)/2; a=c-span/2; b=c+span/2; }
-  const span=b-a; if(a<f0){a=f0;b=f0+span;} if(b>f1){b=f1;a=f1-span;} a=Math.max(a,f0); b=Math.min(b,f1);
-  if(a<=f0+1&&b>=f1-1){viewT0=viewT1=null;} else {viewT0=a;viewT1=b;} }
-function setView(a,b){ clampView(a,b,false); scheduleRender(); }
-function setViewPan(a,b){ clampView(a,b,true); scheduleRender(); }
-function setPreset(win){ const [f0,f1]=curFull; if(win===null||f1-win<=f0){viewT0=viewT1=null;} else {viewT0=f1-win;viewT1=f1;} scheduleRender(); }
-function syncZoom(){ const [f0,f1]=curFull; const cur=viewT0==null?'all':Math.round(viewT1-viewT0);
-  document.querySelectorAll('#zpresets .tg').forEach(b=>{const w=b.dataset.win; b.setAttribute('aria-pressed', String(cur)===String(w)); }); }
-function renderCharts(){ const arms=groups[curPair]||[]; const [f0,f1]=timeDomain(arms); curFull=[f0,f1];
-  renderPrice(arms); renderPerf(arms); renderLpHold(arms); renderEconomics(arms); }
-// global pan drag (persists across chart re-renders)
-window.addEventListener('mousemove',ev=>{ if(!panState||!panState.active)return; const dt=(ev.clientX-panState.x)*panState.perPx; setViewPan(panState.t0-dt, panState.t1-dt); });
-window.addEventListener('mouseup',()=>{ if(panState){panState.active=false; document.body.style.userSelect='';} });
+// ---------------------------------------------------------------------------------------- render
+function renderAll() {
+  const v = st.view; if (!v) return;
+  const g = curGroup();
+  renderHeader();
+  const pairs = $('pairs'); pairs.innerHTML = '';
+  st.groups.forEach(x => { const b = document.createElement('button'); b.type = 'button'; b.className = 'pill'; b.textContent = x.name; b.setAttribute('aria-pressed', x.key === st.cur); b.onclick = () => { st.cur = x.key; st.preset = null; st.viewT0 = st.viewT1 = null; renderAll(); }; pairs.appendChild(b); });
+  if (!g) { $('metrics').innerHTML = '<div class="empty">No vault has data yet.</div>'; return; }
+  st.full = fullDomain(g.arms);
+  const hasLend = g.arms.some(a => a.lend);
+  if (st.econ === 'lend' && !hasLend) st.econ = 'net';
+  document.querySelectorAll('#econs .tg').forEach(b => { b.hidden = b.dataset.k === 'lend' && !hasLend; b.setAttribute('aria-pressed', b.dataset.k === st.econ); });
+  document.querySelectorAll('#measures .tg').forEach(b => {
+    b.setAttribute('aria-pressed', b.dataset.k === st.measure);
+    if (b.dataset.k === 't0') b.textContent = 'In ' + g.sym0; if (b.dataset.k === 't1') b.textContent = 'In ' + g.sym1;
+  });
+  renderCards(g); renderCharts(); renderTable(g); renderFoot(g); syncZoom(); save();
+}
+function syncZoom() { const [f0, f1] = st.full; const [t0, t1] = windowNow(); const cur = st.preset != null ? String(st.preset) : (t0 <= f0 + 1 && t1 >= f1 - 1 ? 'all' : ''); document.querySelectorAll('#zpresets .tg').forEach(b => b.setAttribute('aria-pressed', b.dataset.win === cur)); }
+function renderCharts() { const g = curGroup(); if (!g) return; renderPrice(g); renderPerf(g); renderEcon(g); }
 
-const fmt=(n,d=2)=>n==null?'&ndash;':n.toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
-const fmtPct=n=>(n>=0?'+':'')+n.toFixed(2)+'%';
-const dayFrac=(a,b)=>(b-a)/86400;
-
-function renderAll(){
-  document.querySelectorAll('.pairs .pill').forEach(b=>b.setAttribute('aria-pressed', b.textContent===curPair));
-  document.querySelectorAll('#denoms .tg').forEach(b=>b.setAttribute('aria-pressed', b.dataset.k===denom));
-  {const pp=curPair.split('/');document.querySelectorAll('#denoms .tg').forEach(b=>{
-    if(b.dataset.k==='val0')b.textContent='Value in '+pp[0];
-    if(b.dataset.k==='val1')b.textContent='Value in '+pp[pp.length-1];});}
-  const arms = groups[curPair]||[];
-  renderMetrics(arms); renderCharts(); renderTable(arms); renderFoot(arms); syncZoom();
-  document.querySelectorAll('#econ-metric .tg').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===econMetric));
-  saveState();
+function renderHeader() {
+  const v = st.view;
+  $('gen').innerHTML = 'block ' + v.generatedAtBlock.toLocaleString('en-US') + '<br>' + utc(v.generatedAtTs) + ' UTC';
+  const priced = v.vaults.filter(x => x.tvlUsd != null); const tvl = priced.reduce((s, x) => s + x.tvlUsd, 0);
+  $('tvl').textContent = '$' + tvl.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  $('tvl-l').innerHTML = 'total TVL &middot; ' + priced.length + ' vaults' + (v.vaults.length > priced.length ? ' (+' + (v.vaults.length - priced.length) + ' unpriced)' : '');
+  const s = $('status'); const p = v.progress;
+  let msg = '';
+  if (v.legacy) msg = 'Showing the earlier build’s samples (sparse in the early weeks) until the first refresh of this build finishes, in a few minutes.';
+  else if (p && p.gridTotal && p.gridFilled < p.gridTotal) msg = 'Reading past hours from the chain: ' + Math.floor(p.gridFilled / p.gridTotal * 100) + '% of the hourly samples so far. Stretches without samples yet are drawn dashed; figures sharpen as the rest arrive with each refresh.';
+  const stale = v.vaults.filter(x => x.stale).map(x => x.id);
+  if (stale.length) msg += (msg ? ' ' : '') + 'Last refresh failed for ' + stale.join(', ') + '; showing their previous data.';
+  s.hidden = !msg; s.textContent = msg;
 }
 
-function renderMetrics(arms){
-  const el=document.getElementById('metrics'); el.innerHTML='';
-  const aprFmt=x=>{const a=Math.abs(x);const v=a>=1000?x.toFixed(0):x.toFixed(1);return (x>=0?'+':'')+v+'%';};
-  arms.forEach((v,i)=>{
-    const s=v.series, first=s[0], last=s[s.length-1];
-    const gain=(last.pps/first.pps-1)*100;
-    const days=Math.max(dayFrac(first.ts,last.ts),1/24);
-    const apr=gain*365/days;
-    const evs=v.events||[]; const nreb=evs.filter(e=>e.kind==='rebalance').length; const nharv=evs.filter(e=>e.kind==='harvest').length;
-    const inRange=s.filter(p=>p.tick>=p.tickLo&&p.tick<p.tickHi).length/s.length*100;
-    const price=last.priceT1inT0;
-    const c=cssv(C[i%4]);
-    const card=document.createElement('div'); card.className='mcard'; card.style.setProperty('--arm',c);
-    card.innerHTML=`<div class="arm"><span class="dot"></span>${v._arm.wlabel} &middot; ${v.design}</div>
-      <div class="big ${gain>=0?'up':'down'}">${fmtPct(gain)}</div>
-      <div class="apr ${apr>=0?'up':'down'}">${aprFmt(apr)} <span class="lbl">APR</span></div>
-      <div class="sub"><b>${nreb}</b> rebal &middot; <b>${nharv}</b> harv<br>
-      <b>${inRange.toFixed(0)}%</b> in range<br>
-      price <b>${fmt(price, price>100?2:4)}</b> &middot; <b>${days.toFixed(days<10?1:0)}</b>d</div>`;
+// ---------------------------------------------------------------------------------------- cards
+function renderCards(g) {
+  const el = $('metrics'); el.innerHTML = '';
+  const [t0, t1] = windowNow();
+  const whole = st.preset == null && st.viewT0 == null;
+  g.arms.forEach(a => {
+    const w = M.windowStats(a, t0, t1, st.view.gridSeconds);
+    const card = document.createElement('div'); card.className = 'mcard'; card.style.setProperty('--arm', cssv(a.color));
+    if (!w) { card.innerHTML = `<div class="arm"><span class="dot"></span>${a.name}</div><div class="empty">No samples in this timeframe.</div>`; el.appendChild(card); return; }
+    const rows = [];
+    // three columns: what, change over the view, the same as a yearly rate
+    const yr = x => x == null || !isFinite(x) ? '' : `<span class="${cls(x)}">${(x >= 0 ? '+' : '&minus;') + (Math.abs(x) >= 100 ? Math.abs(x).toFixed(0) : Math.abs(x).toFixed(1))}%</span>`;
+    const row = (k, x, apr) => rows.push(`<span class="k">${k}</span><span class="v">${x == null ? '&ndash;' : `<span class="${cls(x)}">${pct(x)}</span>`}</span><span class="v y">${yr(apr)}</span>`);
+    const info = (k, v) => rows.push(`<span class="k">${k}</span><span class="v wide">${v}</span>`);
+    const sep = () => rows.push('<span class="sep"></span>');
+    rows.push('<span class="k"></span><span class="v h">change</span><span class="v h">a year</span>');
+    if (a.ppsUnit === 'L' && a.design !== 'V3') {
+      row('booked', w.booked, w.apr.booked);
+      if (w.notBooked != null) row('not booked yet', w.notBooked, null);
+      row('marked', w.marked, w.apr.marked);
+    } else row('marked', w.marked, w.apr.marked);
+    sep();
+    row('AERO', w.split ? w.aero : null, w.split ? w.apr.aero : null);
+    row('swap fees', w.split ? w.fee : null, w.split ? w.apr.fee : null);
+    if (w.lending != null) row('lending', w.lending, w.apr.lending);
+    row(a.design === 'parked' ? 'keeper move cost' : 'rebalance cost', w.costReb, w.apr.costReb);
+    if (Math.abs(w.costHarv) >= 0.005) row('harvest cost', w.costHarv, null);
+    sep();
+    const counts = a.design === 'parked'
+      ? `${w.nEnter} in &middot; ${w.nExit} out &middot; ${w.nReplace} moved`
+      : `${w.nReb} rebalances &middot; ${w.nHarv} harvests`;
+    info('events', counts);
+    if (a.design === 'parked') info('in the pool', w.inPool != null ? w.inPool.toFixed(0) + '% of the time' : '&ndash;');
+    else info('in range', w.inRange != null ? w.inRange.toFixed(0) + '% of hourly samples' : '&ndash;');
+    info(whole ? 'age' : 'timeframe', days(w.days) + (a.tvlUsd != null ? ' &middot; $' + a.tvlUsd.toFixed(0) : ''));
+    card.innerHTML = `<div class="arm"><span class="dot"></span>${a.name}<span class="tag">${designTag(a)}</span>${a.widthPct != null && a.label && a.label !== a.widthPct.toFixed(2) + '%' ? '<span class="tag">' + a.widthPct.toFixed(2) + '%</span>' : ''}</div>
+      <div class="big ${cls(w.vsHold)}">${pct(w.vsHold)}</div>
+      <div class="bigsub">vs holding 50/50${w.apr.vsHold != null ? ' &middot; <b class="' + cls(w.apr.vsHold) + '">' + aprTxt(w.apr.vsHold) + '</b>' : ''}</div>
+      <div class="kv">${rows.join('')}</div>`;
     el.appendChild(card);
   });
-  if(!arms.length) el.innerHTML='<div class="empty">No data for this pair yet.</div>';
 }
 
-// ---- shared time domain across arms of the pair ----
-function timeDomain(arms){
-  let t0=Infinity,t1=-Infinity;
-  arms.forEach(v=>v.series.forEach(p=>{t0=Math.min(t0,p.ts);t1=Math.max(t1,p.ts);}));
-  return [t0,t1];
+// ---------------------------------------------------------------------------------------- chart kit
+function niceTicks(min, max, n) { const span = max - min || 1; const step = Math.pow(10, Math.floor(Math.log10(span / n))); const err = span / n / step; const m = err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1; const s = m * step; const out = []; for (let x = Math.ceil(min / s) * s; x <= max + 1e-9; x += s) out.push(Math.abs(x) < s * 1e-9 ? 0 : x); return out; }
+const TSTEPS = [3600, 3 * 3600, 6 * 3600, 12 * 3600, DAY, 2 * DAY, 3 * DAY, 7 * DAY, 14 * DAY, 30 * DAY, 61 * DAY];
+function timeTicks(t0, t1, width) {
+  const want = Math.max(2, Math.floor(width / 85)); const span = t1 - t0;
+  let step = TSTEPS.find(s => span / s <= want) || TSTEPS[TSTEPS.length - 1];
+  const out = [];
+  if (step >= 30 * DAY) { const d = new Date(t0 * 1000); let y = d.getUTCFullYear(), m = d.getUTCMonth() + 1; const k = step / (30 * DAY) | 0; for (;;) { const t = Date.UTC(y, m, 1) / 1000; if (t > t1) break; if (t >= t0) out.push(t); m += k; if (m > 11) { y += Math.floor(m / 12); m %= 12; } } }
+  else for (let t = Math.ceil(t0 / step) * step; t <= t1; t += step) out.push(t);
+  return { ticks: out, step };
 }
-function niceTicks(min,max,n){const span=max-min||1;const step=Math.pow(10,Math.floor(Math.log10(span/n)));
-  const err=span/n/step;let m=err>=7.5?10:err>=3.5?5:err>=1.5?2:1;const s=m*step;
-  const out=[];for(let x=Math.ceil(min/s)*s;x<=max+1e-9;x+=s)out.push(x);return out;}
-function dateTicks(t0,t1,n){const out=[];const span=t1-t0;const day=86400;
-  let step=day;if(span>20*day)step=5*day;else if(span>8*day)step=2*day;else if(span<2*day)step=day/4;
-  for(let t=Math.ceil(t0/step)*step;t<=t1;t+=step)out.push(t);return out.length?out:[t0,t1];}
-
-const W=880,H=300,PADL=54,PADR=14,PADT=12,PADB=26;
-function xscale(t,t0,t1){return PADL+(t-t0)/((t1-t0)||1)*(W-PADL-PADR);}
-function yscale(v,lo,hi){return PADT+(1-(v-lo)/((hi-lo)||1))*(H-PADT-PADB);}
-// points of a per-arm series within [t0,t1], plus the immediate bracketing points so the entering/
-// leaving line segments stay in the y-range. Used to auto-fit y to the visible window.
-function inWin(series,t0,t1){const out=[];let before=null,after=null;
-  for(const p of series){if(p.ts>=t0&&p.ts<=t1)out.push(p);else if(p.ts<t0)before=p;else if(after===null)after=p;}
-  if(before)out.unshift(before);if(after)out.push(after);return out;}
-
-function svgEl(){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  s.setAttribute('viewBox',`0 0 ${W} ${H}`);s.setAttribute('preserveAspectRatio','none');
-  const cp=mk('clipPath',{id:'plot'});cp.appendChild(mk('rect',{x:PADL,y:PADT-2,width:W-PADL-PADR,height:H-PADT-PADB+2}));s.appendChild(cp);return s;}
-function mk(tag,attrs){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);
-  for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
-
-function renderPrice(arms){
-  const host=document.getElementById('price-chart'); host.innerHTML='';
-  const leg=document.getElementById('price-legend'); leg.innerHTML='';
-  if(!arms.length){host.innerHTML='<div class="empty">&ndash;</div>';return;}
-  const [f0,f1]=timeDomain(arms); const t0=viewT0!=null?viewT0:f0, t1=viewT1!=null?viewT1:f1;
-  // price domain: robust to early out-of-range outliers over long histories. Collect price + range
-  // edges, take the 1.5–98.5 percentile band, then ensure the CURRENT range of every arm is visible.
-  const cand=[];
-  arms.forEach(v=>inWin(v.series,t0,t1).forEach(p=>{
-    cand.push(p.priceT1inT0);
-    cand.push(Math.pow(10,v.d1-v.d0)/Math.pow(1.0001,p.tickHi));
-    cand.push(Math.pow(10,v.d1-v.d0)/Math.pow(1.0001,p.tickLo));}));
-  cand.sort((a,b)=>a-b);
-  const q=f=>cand.length?cand[Math.min(cand.length-1,Math.max(0,Math.round(f*(cand.length-1))))]:0;
-  let lo=q(0.015),hi=q(0.985);
-  // never clip the price line itself (percentile only trims extreme range edges)
-  arms.forEach(v=>inWin(v.series,t0,t1).forEach(p=>{lo=Math.min(lo,p.priceT1inT0);hi=Math.max(hi,p.priceT1inT0);}));
-  const pad=(hi-lo)*0.08||hi*0.02;lo-=pad;hi+=pad;
-  const svg=svgEl();
-  niceTicks(lo,hi,4).forEach(g=>{const y=yscale(g,lo,hi);
-    svg.appendChild(mk('line',{class:'gridline',x1:PADL,x2:W-PADR,y1:y,y2:y}));
-    const tx=mk('text',{class:'axis',x:PADL-6,y:y+3,'text-anchor':'end'});tx.textContent=g>=100?g.toFixed(0):g.toFixed(g<1?4:2);svg.appendChild(tx);});
-  dateTicks(t0,t1,6).forEach(t=>{const x=xscale(t,t0,t1);
-    const tx=mk('text',{class:'axis',x:x,y:H-8,'text-anchor':'middle'});tx.textContent=new Date(t*1000).toISOString().slice(5,10);svg.appendChild(tx);});
-  // range bands per arm (step areas)
-  arms.forEach((v,i)=>{const c=cssv(C[i%4]);const s=v.series;
-    let d='';const top=[],bot=[];
-    s.forEach(p=>{const x=xscale(p.ts,t0,t1);
-      const eHi=Math.pow(10,v.d1-v.d0)/Math.pow(1.0001,p.tickLo);
-      const eLo=Math.pow(10,v.d1-v.d0)/Math.pow(1.0001,p.tickHi);
-      top.push([x,yscale(eHi,lo,hi)]);bot.push([x,yscale(eLo,lo,hi)]);});
-    // step polygon
-    let path='M'+top[0][0]+','+top[0][1];
-    for(let k=1;k<top.length;k++){path+=' L'+top[k][0]+','+top[k-1][1]+' L'+top[k][0]+','+top[k][1];}
-    for(let k=bot.length-1;k>=0;k--){const nk=k<bot.length-1?k+1:k;path+=' L'+bot[k][0]+','+bot[Math.min(k+1,bot.length-1)][1]+' L'+bot[k][0]+','+bot[k][1];}
-    path+=' Z';
-    svg.appendChild(mk('path',{d:path,fill:c,'fill-opacity':cssv('--band-a'),stroke:c,'stroke-opacity':.35,'stroke-width':1,'clip-path':'url(#plot)'}));
+function tickLabel(t, step) {
+  const d = new Date(t * 1000); const md = d.toISOString().slice(5, 10);
+  if (step >= 30 * DAY) return d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+  if (step >= DAY) return md;
+  return d.getUTCHours() === 0 ? md : d.toISOString().slice(11, 16);
+}
+function mk(tag, attrs) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]); return e; }
+const PAD = { l: 58, r: 12, t: 10, b: 24 };
+function frame(host, t0, t1, lo, hi, opts = {}) {
+  host.innerHTML = '';
+  const W = Math.max(300, Math.round(host.clientWidth || 800));
+  const H = opts.height || Math.round(Math.max(210, Math.min(320, W * 0.38)));
+  const extraB = opts.extraBottom || 0;
+  const pad = { ...PAD, l: W < 480 ? 46 : PAD.l };
+  const svg = mk('svg', { width: W, height: H + extraB, viewBox: `0 0 ${W} ${H + extraB}`, role: 'img' });
+  const cid = 'clip' + Math.random().toString(36).slice(2, 8);
+  const cp = mk('clipPath', { id: cid }); cp.appendChild(mk('rect', { x: pad.l, y: pad.t - 2, width: W - pad.l - pad.r, height: H - pad.t - pad.b + 4 })); svg.appendChild(cp);
+  const X = t => pad.l + (t - t0) / ((t1 - t0) || 1) * (W - pad.l - pad.r);
+  const Y = v => pad.t + (1 - (v - lo) / ((hi - lo) || 1)) * (H - pad.t - pad.b);
+  niceTicks(lo, hi, H < 260 ? 4 : 5).forEach(gv => {
+    const y = Y(gv); const zero = opts.zeroLine && Math.abs(gv) < 1e-12;
+    svg.appendChild(mk('line', { class: 'gridline', x1: pad.l, x2: W - pad.r, y1: y, y2: y, stroke: zero ? cssv('--muted') : null, 'stroke-dasharray': zero ? '3 3' : null }));
+    const tx = mk('text', { class: 'axis', x: pad.l - 6, y: y + 3.5, 'text-anchor': 'end' }); tx.textContent = opts.yfmt ? opts.yfmt(gv) : gv; svg.appendChild(tx);
   });
-  // price line (one per arm, but price is per-pool so same across arms &mdash; draw once from arm0)
-  const v0=arms[0];let pd='';v0.series.forEach((p,k)=>{const x=xscale(p.ts,t0,t1),y=yscale(p.priceT1inT0,lo,hi);pd+=(k?'L':'M')+x+','+y+' ';});
-  svg.appendChild(mk('path',{d:pd,fill:'none',stroke:cssv('--price'),'stroke-width':2,'clip-path':'url(#plot)'}));
-  // event markers ON the price line: rebalance = triangle, harvest = diamond, coloured per arm.
-  const priceAt=ts=>{let b=v0.series[0];v0.series.forEach(s=>{if(Math.abs(s.ts-ts)<Math.abs(b.ts-ts))b=s;});return b.priceT1inT0;};
-  arms.forEach((v,i)=>{const c=cssv(C[i%4]);const off=(i-(arms.length-1)/2)*6;
-    (v.events||[]).forEach(e=>{if(e.ts<t0-1||e.ts>t1+1)return;const x=xscale(e.ts,t0,t1),y=yscale(priceAt(e.ts),lo,hi)+off;
-      if(e.kind==='rebalance'){svg.appendChild(mk('path',{d:`M${x-4},${y-4} L${x+4},${y-4} L${x},${y+4} Z`,fill:c,'fill-opacity':.9,stroke:cssv('--surface'),'stroke-width':.75}));}
-      else{svg.appendChild(mk('path',{d:`M${x},${y-4} L${x+4},${y} L${x},${y+4} L${x-4},${y} Z`,fill:'none',stroke:c,'stroke-width':1.6}));}
-    });});
-  attachHover(svg,arms,t0,t1,lo,hi,'price');
+  const tt = timeTicks(t0, t1, W - pad.l - pad.r);
+  tt.ticks.forEach(t => { const x = X(t); if (x < pad.l - 1 || x > W - pad.r + 1) return; const tx = mk('text', { class: 'axis', x, y: H - 7, 'text-anchor': 'middle' }); tx.textContent = tickLabel(t, tt.step); svg.appendChild(tx); });
   host.appendChild(svg);
-  // legend
-  leg.innerHTML='<span><span class="sw line"></span>asset price</span>'
-    +arms.map((v,i)=>`<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel} range</span>`).join('')
-    +'<span style="color:var(--muted)">&#9650; rebalance &#9670; harvest</span>';
-  const pp=curPair.split('/');
-  document.getElementById('price-hint').innerHTML=`${pp[pp.length-1]} priced in ${pp[0]} &middot; ticks mark rebalances`;
+  return { svg, W, H, X, Y, pad, clip: `url(#${cid})`, t0, t1, lo, hi };
 }
+// a line over (t, y) points: solid where samples are close, thin dashed across stretches without samples
+function drawLine(f, pts, color, opts = {}) {
+  const gap = opts.gap || 3 * (st.view.gridSeconds || 3600) + 120;
+  let solid = '', dashed = '', prev = null;
+  const span = f.t1 - f.t0, perPx = span / (f.W - f.pad.l - f.pad.r);
+  // keep at most ~3 points per pixel column (first, lowest, highest) so long histories stay quick
+  const thin = pts.length > 3 * (f.W - f.pad.l - f.pad.r) ? bucket(pts, perPx) : pts;
+  for (const p of thin) {
+    if (p.y == null || !isFinite(p.y)) { prev = null; continue; }
+    const x = f.X(p.t).toFixed(1), y = f.Y(p.y).toFixed(1);
+    if (!prev) solid += `M${x},${y}`;
+    else if (p.t - prev.t > gap && !opts.noGaps) { dashed += `M${f.X(prev.t).toFixed(1)},${f.Y(prev.y).toFixed(1)}L${x},${y}`; solid += `M${x},${y}`; }
+    else solid += `L${x},${y}`;
+    prev = p;
+  }
+  if (dashed) f.svg.appendChild(mk('path', { d: dashed, fill: 'none', stroke: color, 'stroke-width': 1.2, 'stroke-dasharray': '2 4', 'stroke-opacity': .7, 'clip-path': f.clip }));
+  f.svg.appendChild(mk('path', { d: solid, fill: 'none', stroke: color, 'stroke-width': opts.width || 2, 'stroke-dasharray': opts.dash || null, 'stroke-opacity': opts.opacity || null, 'stroke-linejoin': 'round', 'clip-path': f.clip }));
+}
+function bucket(pts, perPx) {
+  const out = []; let cur = null, b = null;
+  for (const p of pts) {
+    if (p.y == null) { if (b) flush(); out.push(p); continue; }
+    const k = Math.floor(p.t / perPx);
+    if (k !== cur) { if (b) flush(); cur = k; b = { first: p, min: p, max: p, last: p }; }
+    else { if (p.y < b.min.y) b.min = p; if (p.y > b.max.y) b.max = p; b.last = p; }
+  }
+  if (b) flush();
+  return out;
+  function flush() { const s = [b.first, b.min, b.max, b.last].filter((p, i, a) => a.indexOf(p) === i).sort((x, y) => x.t - y.t); out.push(...s); b = null; }
+}
+const nearest = (ts, t) => { const i = M.lowerBound(ts, t); if (i <= 0) return 0; if (i >= ts.length) return ts.length - 1; return t - ts[i - 1] <= ts[i] - t ? i - 1 : i; };
+const before = (ts, t) => M.upperBound(ts, t) - 1;
 
-function seriesVal(v,p){
-  if(denom==='vps') return p.pps;
-  if(denom==='valueL') return p.valueL;
-  if(denom==='val0') return (p.a0+p.idle0)+(p.a1+p.idle1)*p.priceT1inT0; // full vault value in token0, idle-incl
-  if(denom==='val1') return (p.a0+p.idle0)/p.priceT1inT0+(p.a1+p.idle1); // full vault value in token1
-  return p.pps;
+// hover, zoom and pan, shared by the charts
+const tip = $('tip');
+let pan = null;
+window.addEventListener('mousemove', ev => { if (!pan) return; const dt = (ev.clientX - pan.x) * pan.perPx; setView(pan.t0 - dt, pan.t1 - dt, true); });
+window.addEventListener('mouseup', () => { if (pan) { pan = null; document.body.style.userSelect = ''; } });
+function interact(f, rowsAt) {
+  const cx = mk('line', { stroke: cssv('--crosshair'), 'stroke-width': 1, 'stroke-dasharray': '3 3', y1: f.pad.t, y2: f.H - f.pad.b, x1: -99, x2: -99 }); f.svg.appendChild(cx);
+  const ov = mk('rect', { x: f.pad.l, y: 0, width: f.W - f.pad.l - f.pad.r, height: f.svg.viewBox.baseVal.height, fill: 'transparent' }); f.svg.appendChild(ov);
+  ov.style.cursor = 'crosshair';
+  const tAt = clientX => { const r = f.svg.getBoundingClientRect(); const px = (clientX - r.left) / r.width * f.W; return [px, f.t0 + (px - f.pad.l) / (f.W - f.pad.l - f.pad.r) * (f.t1 - f.t0)]; };
+  const show = (clientX, clientY) => {
+    const [px, t] = tAt(clientX); cx.setAttribute('x1', px); cx.setAttribute('x2', px);
+    tip.innerHTML = `<div class="t-date">${utc(t)} UTC</div>` + rowsAt(t);
+    tip.style.opacity = 1;
+    const w = tip.offsetWidth || 200; tip.style.left = Math.max(8, Math.min(clientX + 14, window.innerWidth - w - 8)) + 'px'; tip.style.top = Math.max(8, clientY - 12) + 'px';
+  };
+  const hide = () => { tip.style.opacity = 0; cx.setAttribute('x1', -99); cx.setAttribute('x2', -99); };
+  ov.addEventListener('mousemove', ev => { if (!pan) show(ev.clientX, ev.clientY); });
+  ov.addEventListener('mouseleave', hide);
+  ov.addEventListener('touchstart', ev => { const p = ev.touches[0]; show(p.clientX, p.clientY - 60); }, { passive: true });
+  ov.addEventListener('touchmove', ev => { const p = ev.touches[0]; show(p.clientX, p.clientY - 60); }, { passive: true });
+  ov.addEventListener('touchend', () => setTimeout(hide, 1800), { passive: true });
+  ov.addEventListener('wheel', ev => { if (!(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); const [, tc] = tAt(ev.clientX); const k = ev.deltaY > 0 ? 1.25 : 0.8; setView(tc - (tc - f.t0) * k, tc + (f.t1 - tc) * k); }, { passive: false });
+  ov.addEventListener('mousedown', ev => { const r = f.svg.getBoundingClientRect(); pan = { x: ev.clientX, t0: f.t0, t1: f.t1, perPx: (f.t1 - f.t0) / ((f.W - f.pad.l - f.pad.r) * (r.width / f.W)) }; hide(); document.body.style.userSelect = 'none'; });
+  ov.addEventListener('dblclick', () => { st.preset = null; st.viewT0 = st.viewT1 = null; scheduleRender(true); });
 }
-function renderPerf(arms){
-  const host=document.getElementById('perf-chart');host.innerHTML='';
-  const leg=document.getElementById('perf-legend');leg.innerHTML='';
-  if(!arms.length){host.innerHTML='<div class="empty">&ndash;</div>';return;}
-  const [f0,f1]=timeDomain(arms); const t0=viewT0!=null?viewT0:f0, t1=viewT1!=null?viewT1:f1;
-  // index each arm to 100 at its first sample
-  const idx=arms.map(v=>{const base=seriesVal(v,v.series[0])||1;return v.series.map(p=>({ts:p.ts,val:seriesVal(v,p)/base*100}));});
-  let lo=Infinity,hi=-Infinity;
-  idx.forEach(a=>{let before=null,after=null;
-    a.forEach(p=>{if(p.ts>=t0&&p.ts<=t1){lo=Math.min(lo,p.val);hi=Math.max(hi,p.val);}else if(p.ts<t0)before=p;else if(after===null)after=p;});
-    [before,after].forEach(p=>{if(p){lo=Math.min(lo,p.val);hi=Math.max(hi,p.val);}});});
-  if(!isFinite(lo)){lo=100;hi=100;}
-  const pad=(hi-lo)*0.08||1;lo-=pad;hi+=pad;
-  const svg=svgEl();
-  niceTicks(lo,hi,4).forEach(g=>{const y=yscale(g,lo,hi);
-    svg.appendChild(mk('line',{class:'gridline',x1:PADL,x2:W-PADR,y1:y,y2:y,stroke:g===100?cssv('--muted'):undefined,'stroke-dasharray':g===100?'3 3':'0'}));
-    const tx=mk('text',{class:'axis',x:PADL-6,y:y+3,'text-anchor':'end'});tx.textContent=g.toFixed(1);svg.appendChild(tx);});
-  dateTicks(t0,t1,6).forEach(t=>{const x=xscale(t,t0,t1);const tx=mk('text',{class:'axis',x:x,y:H-8,'text-anchor':'middle'});tx.textContent=new Date(t*1000).toISOString().slice(5,10);svg.appendChild(tx);});
-  idx.forEach((a,i)=>{const c=cssv(C[i%4]);let d='';a.forEach((p,k)=>{const x=xscale(p.ts,t0,t1),y=yscale(p.val,lo,hi);d+=(k?'L':'M')+x+','+y+' ';});
-    svg.appendChild(mk('path',{d,fill:'none',stroke:c,'stroke-width':2,'clip-path':'url(#plot)'}));
-    const last=a[a.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last.val,lo,hi),r:3,fill:c}));});
-  attachHover(svg,arms,t0,t1,lo,hi,'perf',idx);
-  host.appendChild(svg);
-  leg.innerHTML=arms.map((v,i)=>`<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel}</span>`).join('');
-}
+const trow = (color, k, v) => `<div class="t-row"><span class="k"><span class="sw" style="--c:${color}"></span>${k}</span><span class="v">${v}</span></div>`;
 
-// ---- LP vs HOLD: per-share vault value in token0 vs holding the inception basket at spot ----
-function renderLpHold(arms){
-  const host=document.getElementById('lph-chart');host.innerHTML='';
-  const leg=document.getElementById('lph-legend');leg.innerHTML='';
-  const hint=document.getElementById('lph-hint');
-  if(!arms.length){host.innerHTML='<div class="empty">&ndash;</div>';return;}
-  const [f0,f1]=timeDomain(arms); const t0=viewT0!=null?viewT0:f0, t1=viewT1!=null?viewT1:f1;
-  // per-share vault value in token0 (idle-inclusive, deposit-neutral)
-  const vps0=p=>p.supply>0?(((p.a0+p.idle0)+(p.a1+p.idle1)*p.priceT1inT0)/p.supply):null;
-  const idx=arms.map(v=>{const s=v.series.filter(p=>p.supply>0);const base=s.length?vps0(s[0])||1:1;
-    return s.map(p=>({ts:p.ts,val:vps0(p)/base*100}));});
-  // HOLD benchmarks: 100% token0 (flat in token0 terms) and 100% token1 (tracks the price),
-  // both over the longest-lived arm's timeline, indexed to 100 at its start
-  let ref=arms[0];arms.forEach(v=>{if(v.series.length>ref.series.length)ref=v;});
-  const rs=ref.series.filter(p=>p.supply>0); let hold0=[],hold1=[];
-  if(rs.length){const f=rs[0];
-    hold0=rs.map(p=>({ts:p.ts,val:100}));
-    hold1=rs.map(p=>({ts:p.ts,val:p.priceT1inT0/(f.priceT1inT0||1)*100}));}
-  const t0n=curPair.split('/')[0]||'token0', t1n=curPair.split('/')[1]||'token1';
-  const holds=[{label:'HOLD '+t0n,color:cssv('--muted'),dash:'2 3',curve:hold0},
-               {label:'HOLD '+t1n,color:cssv('--price'),dash:'6 4',curve:hold1}];
-  let lo=Infinity,hi=-Infinity;
-  const fold=a=>{let before=null,after=null;
-    a.forEach(p=>{if(p.ts>=t0&&p.ts<=t1){lo=Math.min(lo,p.val);hi=Math.max(hi,p.val);}else if(p.ts<t0)before=p;else if(after===null)after=p;});
-    [before,after].forEach(p=>{if(p){lo=Math.min(lo,p.val);hi=Math.max(hi,p.val);}});};
-  idx.forEach(fold); fold(hold0); fold(hold1);
-  if(!isFinite(lo)){lo=100;hi=100;}
-  const pad=(hi-lo)*0.08||1;lo-=pad;hi+=pad;
-  const svg=svgEl();
-  niceTicks(lo,hi,4).forEach(g=>{const y=yscale(g,lo,hi);
-    svg.appendChild(mk('line',{class:'gridline',x1:PADL,x2:W-PADR,y1:y,y2:y,stroke:g===100?cssv('--muted'):undefined,'stroke-dasharray':g===100?'3 3':'0'}));
-    const tx=mk('text',{class:'axis',x:PADL-6,y:y+3,'text-anchor':'end'});tx.textContent=g.toFixed(1);svg.appendChild(tx);});
-  dateTicks(t0,t1,6).forEach(t=>{const x=xscale(t,t0,t1);const tx=mk('text',{class:'axis',x:x,y:H-8,'text-anchor':'middle'});tx.textContent=new Date(t*1000).toISOString().slice(5,10);svg.appendChild(tx);});
-  holds.forEach(hn=>{ if(!hn.curve.length)return;
-    let d='';hn.curve.forEach((p,k)=>{const x=xscale(p.ts,t0,t1),y=yscale(p.val,lo,hi);d+=(k?'L':'M')+x+','+y+' ';});
-    svg.appendChild(mk('path',{d,fill:'none',stroke:hn.color,'stroke-width':1.5,'stroke-dasharray':hn.dash,'clip-path':'url(#plot)'}));
-    const last=hn.curve[hn.curve.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last.val,lo,hi),r:2.5,fill:hn.color}));});
-  idx.forEach((a,i)=>{const c=cssv(C[i%4]);let d='';a.forEach((p,k)=>{const x=xscale(p.ts,t0,t1),y=yscale(p.val,lo,hi);d+=(k?'L':'M')+x+','+y+' ';});
-    svg.appendChild(mk('path',{d,fill:'none',stroke:c,'stroke-width':2,'clip-path':'url(#plot)'}));
-    const last=a[a.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last.val,lo,hi),r:3,fill:c}));});
-  attachHover(svg,arms,t0,t1,lo,hi,'perf',idx,holds);
-  host.appendChild(svg);
-  leg.innerHTML=arms.map((v,i)=>`<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel} LP</span>`).join('')
-    +holds.map(hn=>`<span style="--c:${hn.color}"><span class="sw dash"></span>${hn.label}</span>`).join('');
-  hint.innerHTML=`per-share vault value in ${t0n} &middot; vs holding 100% ${t0n} (flat) or 100% ${t1n} (tracks price) &middot; indexed to 100`;
-}
-
-// crosshair + tooltip shared
-const tip=document.getElementById('tip');
-function attachHover(svg,arms,t0,t1,lo,hi,kind,idx,extra){
-  const cx=mk('line',{stroke:cssv('--crosshair'),'stroke-width':1,'stroke-dasharray':'3 3',y1:PADT,y2:H-PADB,x1:-99,x2:-99});svg.appendChild(cx);
-  const overlay=mk('rect',{x:PADL,y:PADT,width:W-PADL-PADR,height:H-PADT-PADB,fill:'transparent'});svg.appendChild(overlay);
-  overlay.style.cursor='crosshair';
-  overlay.addEventListener('mousemove',ev=>{
-    if(panState&&panState.active)return;
-    const r=svg.getBoundingClientRect();const px=(ev.clientX-r.left)/r.width*W;
-    const t=t0+(px-PADL)/((W-PADL-PADR))*(t1-t0);
-    cx.setAttribute('x1',px);cx.setAttribute('x2',px);
-    // nearest sample index of arm0
-    let rows='';
-    if(kind==='price'){
-      const v=arms[0];let best=v.series[0];v.series.forEach(p=>{if(Math.abs(p.ts-t)<Math.abs(best.ts-t))best=p;});
-      rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${cssv('--price')}"></span>price</span><span class="v">${fmt(best.priceT1inT0,best.priceT1inT0>100?2:4)}</span></div>`;
-      arms.forEach((vv,i)=>{let b=vv.series[0];vv.series.forEach(p=>{if(Math.abs(p.ts-t)<Math.abs(b.ts-t))b=p;});
-        const eHi=Math.pow(10,vv.d1-vv.d0)/Math.pow(1.0001,b.tickLo),eLo=Math.pow(10,vv.d1-vv.d0)/Math.pow(1.0001,b.tickHi);
-        rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${cssv(C[i%4])}"></span>${vv._arm.wlabel}</span><span class="v">${fmt(eLo,eLo>100?1:3)}&ndash;${fmt(eHi,eHi>100?1:3)}</span></div>`;});
-      tip.querySelector('.t-date')&&0;
-    } else {
-      arms.forEach((vv,i)=>{const a=idx[i];if(!a||!a.length)return;let bi=0;a.forEach((p,k)=>{if(Math.abs(p.ts-t)<Math.abs(a[bi].ts-t))bi=k;});
-        const g=a[bi].val-100;rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${cssv(C[i%4])}"></span>${vv._arm.wlabel}</span><span class="v">${(g>=0?'+':'')+g.toFixed(2)}%</span></div>`;});
-      (Array.isArray(extra)?extra:(extra?[extra]:[])).forEach(ex=>{ if(!ex.curve||!ex.curve.length)return;
-        const a=ex.curve;let bi=0;a.forEach((p,k)=>{if(Math.abs(p.ts-t)<Math.abs(a[bi].ts-t))bi=k;});
-        const g=a[bi].val-100;rows+=`<div class="t-row"><span class="k"><span class="sw" style="--c:${ex.color}"></span>${ex.label}</span><span class="v">${(g>=0?'+':'')+g.toFixed(2)}%</span></div>`;});
-    }
-    const dt=new Date(t*1000).toISOString().slice(0,16).replace('T',' ');
-    tip.innerHTML=`<div class="t-date">${dt} UTC</div>${rows}`;
-    tip.style.opacity=1;tip.style.left=Math.min(ev.clientX+14,window.innerWidth-180)+'px';tip.style.top=(ev.clientY-10)+'px';
+// ---------------------------------------------------------------------------------------- price and ranges
+// the pool price over time from every vault's samples, plus the price just before and after each event
+function poolPrice(g) {
+  const m = new Map();
+  g.arms.forEach(a => {
+    for (let i = 0; i < a.t.length; i++) if (!m.has(a.t[i])) m.set(a.t[i], { t: a.t[i], tick: a.tick[i], grid: !(a.tip && i === a.t.length - 1) });
+    a.ev.forEach(e => { if (e.tb != null) m.set(e.ts - 2, { t: e.ts - 2, tick: e.tb, grid: false }); if (e.ta != null) m.set(e.ts, { t: e.ts, tick: e.ta, grid: false }); });
   });
-  overlay.addEventListener('mouseleave',()=>{tip.style.opacity=0;cx.setAttribute('x1',-99);cx.setAttribute('x2',-99);});
-  overlay.addEventListener('wheel',ev=>{ev.preventDefault();const r=svg.getBoundingClientRect();const px=(ev.clientX-r.left)/r.width*W;
-    const tc=t0+(px-PADL)/(W-PADL-PADR)*(t1-t0);const f=ev.deltaY>0?1.25:0.8;setView(tc-(tc-t0)*f, tc+(t1-tc)*f);},{passive:false});
-  overlay.addEventListener('mousedown',ev=>{const r=svg.getBoundingClientRect();
-    panState={active:true,x:ev.clientX,t0,t1,perPx:(t1-t0)/((W-PADL-PADR)*(r.width/W))};tip.style.opacity=0;document.body.style.userSelect='none';overlay.style.cursor='grabbing';});
-  overlay.addEventListener('dblclick',()=>{viewT0=viewT1=null;scheduleRender();});
+  const pts = [...m.values()].sort((x, y) => x.t - y.t);
+  const p = tick => Math.pow(10, g.d1 - g.d0) / Math.pow(1.0001, tick);
+  pts.forEach(x => { x.y = p(x.tick); });
+  return pts;
 }
-
-
-function cumSeries(v){ // cumulative % per event for income/cost/net
-  const evs=(v.events||[]).slice().sort((a,b)=>a.ts-b.ts);
-  let ci=0,cc=0,cn=0;const out=[];
-  evs.forEach(e=>{ if(e.incomePct!=null)ci+=e.incomePct; if(e.costPct!=null)cc+=e.costPct; cn+=e.netPct;
-    out.push({ts:e.ts, income:ci, cost:cc, net:cn, hasIC:e.incomePct!=null}); });
+// the range a vault held, as steps: from its samples, and from its rebalances at the second they happened
+function rangeSteps(a) {
+  const pts = [];
+  for (let i = 0; i < a.t.length; i++) pts.push({ t: a.t[i], lo: a.lo[i], hi: a.hi[i] });
+  a.ev.forEach(e => { if (e.kind !== 'h' && e.lo != null && e.hi != null) pts.push({ t: e.ts, lo: e.lo, hi: e.hi, ev: true }); });
+  pts.sort((x, y) => x.t - y.t || (y.ev ? 1 : 0) - (x.ev ? 1 : 0));
+  const out = [];
+  for (const p of pts) { const l = out[out.length - 1]; if (l && l.lo === p.lo && l.hi === p.hi) continue; out.push(p); }
   return out;
 }
-// Least-squares fit of a cumulative %-curve, CONSTRAINED THROUGH THE CURVE'S ORIGIN — the point
-// where it starts on screen (t0, base), which in the default full view is the chart origin (0%).
-// Minimising Σ(dy - slope·dx)² with no free intercept gives slope = Σdx·dy / Σdx², so the trend is
-// a ray from the same point the data starts at. Slope is %/second; annualised it is the APR.
-function trendFit(a,key,t0,t1){
-  let base=0;
-  a.forEach(p=>{ if(p.ts<t0) base=p[key]; });
-  let sxy=0,sxx=0,n=0;
-  a.forEach(p=>{ if(p.ts>=t0&&p.ts<=t1){ const dx=p.ts-t0, dy=p[key]-base; sxy+=dx*dy; sxx+=dx*dx; n++; } });
-  if(!n||!(sxx>0)) return null;
-  const slope=sxy/sxx;
-  return {slope,base,origin:t0,apr:slope*365*86400,at:x=>base+slope*(x-t0)};
+function renderPrice(g) {
+  const host = $('price-chart'), leg = $('price-legend');
+  const [t0, t1] = windowNow();
+  const P = poolPrice(g), PT = P.map(p => p.t);
+  const tick2p = tick => Math.pow(10, g.d1 - g.d0) / Math.pow(1.0001, tick);
+  const steps = g.arms.map(rangeSteps), stepT = steps.map(S => S.map(s => s.t));
+  // y range: the price, and the range edges in view (trimmed of rare far edges)
+  const vis = P.filter(p => p.t >= t0 && p.t <= t1);
+  const iA = Math.max(0, before(PT, t0)); if (P[iA] && !vis.includes(P[iA])) vis.unshift(P[iA]);
+  let lo = Infinity, hi = -Infinity; vis.forEach(p => { lo = Math.min(lo, p.y); hi = Math.max(hi, p.y); });
+  const edges = [];
+  steps.forEach(S => S.forEach((s, k) => { const end = k + 1 < S.length ? S[k + 1].t : Infinity; if (s.lo === s.hi || end < t0 || s.t > t1) return; edges.push(tick2p(s.hi), tick2p(s.lo)); }));
+  edges.sort((x, y) => x - y);
+  if (edges.length) { const q = f => edges[Math.min(edges.length - 1, Math.max(0, Math.round(f * (edges.length - 1))))]; lo = Math.min(lo, q(0.02)); hi = Math.max(hi, q(0.98)); }
+  if (!isFinite(lo)) { host.innerHTML = '<div class="empty">No samples in this timeframe.</div>'; leg.innerHTML = ''; return; }
+  const pad = (hi - lo) * 0.08 || hi * 0.01; lo -= pad; hi += pad;
+  const strip = 9, nA = g.arms.length;
+  const f = frame(host, t0, t1, lo, hi, { yfmt: v => fmtNum(v, Math.max(0, pxDec((hi - lo) * 50))), extraBottom: 8 + nA * strip });
+  // range bands
+  g.arms.forEach((a, ai) => {
+    const c = cssv(a.color), S = steps[ai];
+    const tEnd = a.t[a.t.length - 1];
+    let d = '';
+    S.forEach((s, k) => {
+      if (s.lo === s.hi) return;
+      const end = k + 1 < S.length ? S[k + 1].t : tEnd; if (end < t0 || s.t > t1) return;
+      const x0 = f.X(s.t), x1 = f.X(end), yT = f.Y(tick2p(s.lo)), yB = f.Y(tick2p(s.hi));
+      d += `M${x0.toFixed(1)},${yT.toFixed(1)}H${x1.toFixed(1)}V${yB.toFixed(1)}H${x0.toFixed(1)}Z`;
+    });
+    if (d) f.svg.appendChild(mk('path', { d, fill: c, 'fill-opacity': cssv('--band-a'), stroke: c, 'stroke-opacity': .4, 'stroke-width': .8, 'clip-path': f.clip }));
+  });
+  drawLine(f, P, cssv('--price'), { width: 1.6 });
+  // events on the price line
+  g.arms.forEach((a, ai) => {
+    const c = cssv(a.color), off = (ai - (nA - 1) / 2) * 5;
+    const many = a.ev.filter(e => e.ts >= t0 && e.ts <= t1).length > 400;
+    a.ev.forEach(e => {
+      if (e.ts < t0 || e.ts > t1) return;
+      if (many && e.kind === 'h') return;
+      const tk = e.ta != null ? e.ta : e.tb; let y;
+      if (tk != null) y = f.Y(tick2p(tk)); else { const i = nearest(PT, e.ts); y = f.Y(P[i].y); }
+      const x = f.X(e.ts); y += off;
+      if (e.kind === 'h') f.svg.appendChild(mk('path', { d: `M${x},${y - 3.5}L${x + 3.5},${y}L${x},${y + 3.5}L${x - 3.5},${y}Z`, fill: 'none', stroke: c, 'stroke-width': 1.3 }));
+      else if (e.kind === 'enter') f.svg.appendChild(mk('circle', { cx: x, cy: y, r: 3.6, fill: c, stroke: cssv('--surface'), 'stroke-width': .8 }));
+      else if (e.kind === 'exit') f.svg.appendChild(mk('circle', { cx: x, cy: y, r: 3.4, fill: cssv('--surface'), stroke: c, 'stroke-width': 1.5 }));
+      else f.svg.appendChild(mk('path', { d: `M${x - 4},${y - 3.5}L${x + 4},${y - 3.5}L${x},${y + 3.5}Z`, fill: c, 'fill-opacity': .92, stroke: cssv('--surface'), 'stroke-width': .7 }));
+    });
+  });
+  // strips under the chart: in range (full colour), out of range (pale), not in the pool or no sample (empty)
+  const y0 = f.H + 4;
+  g.arms.forEach((a, ai) => {
+    const c = cssv(a.color), y = y0 + ai * strip;
+    f.svg.appendChild(mk('rect', { x: f.pad.l, y, width: f.W - f.pad.l - f.pad.r, height: strip - 3, fill: cssv('--surface-2'), rx: 1.5 }));
+    let dIn = '', dOut = '';
+    const gapMax = 3 * (st.view.gridSeconds || 3600) + 120;
+    for (let i = Math.max(0, before(a.t, t0)); i < a.t.length - 1; i++) {
+      if (a.t[i] > t1) break;
+      if (a.lo[i] === a.hi[i] || a.t[i + 1] - a.t[i] > gapMax) continue;
+      const x0 = Math.max(f.pad.l, f.X(a.t[i])), x1 = Math.min(f.W - f.pad.r, f.X(a.t[i + 1])); if (x1 <= x0) continue;
+      const seg = `M${x0.toFixed(1)},${y}H${x1.toFixed(1)}V${y + strip - 3}H${x0.toFixed(1)}Z`;
+      if (a.tick[i] >= a.lo[i] && a.tick[i] < a.hi[i]) dIn += seg; else dOut += seg;
+    }
+    if (dOut) f.svg.appendChild(mk('path', { d: dOut, fill: c, 'fill-opacity': .28 }));
+    if (dIn) f.svg.appendChild(mk('path', { d: dIn, fill: c, 'fill-opacity': .85 }));
+  });
+  interact(f, t => {
+    const i = nearest(PT, t);
+    let rows = trow(cssv('--price'), 'price', fmtNum(P[i].y, pxDec(P[i].y)));
+    g.arms.forEach((a, ai) => {
+      if (t < a.t[0]) return;
+      const S = steps[ai]; const k = before(stepT[ai], t); const s = S[Math.max(0, k)];
+      rows += trow(cssv(a.color), a.name, s.lo === s.hi ? 'not in the pool' : fmtNum(tick2p(s.hi), pxDec(tick2p(s.hi))) + '&ndash;' + fmtNum(tick2p(s.lo), pxDec(tick2p(s.lo))));
+    });
+    return rows;
+  });
+  leg.innerHTML = `<span><span class="sw" style="--c:${cssv('--price')}"></span>pool price</span>`
+    + g.arms.map(a => `<span style="--c:${cssv(a.color)}"><span class="sw box"></span>${a.name}</span>`).join('')
+    + `<span class="apr">&#9650; rebalance &#9670; harvest${g.arms.some(a => a.design === 'parked') ? ' &#9679; entered &#9675; left the pool' : ''}</span>`;
+  const vol = volOf(g, t0, t1);
+  $('price-hint').innerHTML = `${g.sym1} priced in ${g.sym0} &middot; shaded: each vault’s range &middot; bars under the chart: in range (full) or out of range (pale), empty when not in the pool`
+    + (vol ? ` &middot; daily volatility <b>${vol.toFixed(2)}%</b> (4-hour moves)` : '');
+}
+function volOf(g, t0, t1) {
+  let best = null; g.arms.forEach(a => { const n = M.upperBound(a.t, t1) - M.lowerBound(a.t, t0); if (!best || n > best.n) best = { a, n }; });
+  if (!best) return null; const v = M.dailyVol(best.a, t0, t1, st.view.gridSeconds); return v ? v.pct : null;
 }
 
-function renderEconomics(arms){
-  const host=document.getElementById('econ-chart');host.innerHTML='';
-  const leg=document.getElementById('econ-legend');leg.innerHTML='';
-  const hint=document.getElementById('econ-hint');
-  const anyIC=arms.some(v=>(v.events||[]).some(e=>e.incomePct!=null));
-  if((econMetric==='income'||econMetric==='cost')&&!anyIC){
-    host.innerHTML='<div class="empty">No income / cost data yet &mdash; this vault has no rebalances or harvests in range. Use Performance.</div>';
-    hint.innerHTML='per-event, cumulative &middot; performance = income + cost (cost is negative)'; return; }
-  const cum=arms.map(cumSeries);
-  const [f0,f1]=timeDomain(arms); const t0=viewT0!=null?viewT0:f0, t1=viewT1!=null?viewT1:f1;
-  const key=econMetric;
-  let lo=Infinity,hi=-Infinity;
-  cum.forEach(a=>{let base=0;
-    a.forEach(p=>{if(p.ts<t0)base=p[key];if(p.ts>=t0&&p.ts<=t1){lo=Math.min(lo,p[key]);hi=Math.max(hi,p[key]);}});
-    lo=Math.min(lo,base);hi=Math.max(hi,base);});
-  if(!isFinite(lo)){lo=0;hi=0;}
-  if(hi-lo<0.2){hi+=0.1;lo-=0.1;} const pad=(hi-lo)*0.1;lo-=pad;hi+=pad;
-  const svg=svgEl();
-  niceTicks(lo,hi,4).forEach(g=>{const y=yscale(g,lo,hi);
-    svg.appendChild(mk('line',{class:'gridline',x1:PADL,x2:W-PADR,y1:y,y2:y,stroke:Math.abs(g)<1e-9?cssv('--muted'):undefined,'stroke-dasharray':Math.abs(g)<1e-9?'3 3':'0'}));
-    const tx=mk('text',{class:'axis',x:PADL-6,y:y+3,'text-anchor':'end'});tx.textContent=(g>=0?'+':'')+g.toFixed(2)+'%';svg.appendChild(tx);});
-  dateTicks(t0,t1,6).forEach(t=>{const x=xscale(t,t0,t1);const tx=mk('text',{class:'axis',x:x,y:H-8,'text-anchor':'middle'});tx.textContent=new Date(t*1000).toISOString().slice(5,10);svg.appendChild(tx);});
-  const idx=[];
-  cum.forEach((a,i)=>{const c=cssv(C[i%4]);if(!a.length){idx.push([]);return;}
-    // step line (values realise at events), start at 0 at t0
-    let d='M'+xscale(curFull[0],t0,t1)+','+yscale(0,lo,hi);let prev=0;
-    a.forEach(p=>{const x=xscale(p.ts,t0,t1);d+=' L'+x+','+yscale(prev,lo,hi)+' L'+x+','+yscale(p[key],lo,hi);prev=p[key];});
-    d+=' L'+xscale(curFull[1],t0,t1)+','+yscale(prev,lo,hi);
-    svg.appendChild(mk('path',{d,fill:'none',stroke:c,'stroke-width':2,'clip-path':'url(#plot)'}));
-    const last=a[a.length-1];svg.appendChild(mk('circle',{cx:xscale(last.ts,t0,t1),cy:yscale(last[key],lo,hi),r:3,fill:c}));
-    idx.push(a.map(p=>({ts:p.ts,val:100+p[key]})));});
-  // linear trend per arm: slope annualised = the APR that arm is running at over the visible window
-  const trends=cum.map(a=>a.length?trendFit(a,key,t0,t1):null);
-  trends.forEach((tr,i)=>{ if(!tr)return; const c=cssv(C[i%4]);
-    svg.appendChild(mk('line',{x1:xscale(t0,t0,t1),y1:yscale(tr.at(t0),lo,hi),
-      x2:xscale(t1,t0,t1),y2:yscale(tr.at(t1),lo,hi),
-      stroke:c,'stroke-width':1.25,'stroke-dasharray':'5 4','stroke-opacity':.75,'clip-path':'url(#plot)'})); });
-  attachHover(svg,arms,t0,t1,lo,hi,'perf',idx);
-  host.appendChild(svg);
-  leg.innerHTML=arms.map((v,i)=>{const tr=trends[i];
-    const apr=tr?` <span style="opacity:.7">&middot; ${(tr.apr>=0?'+':'')+tr.apr.toFixed(0)}% APR</span>`:'';
-    return `<span style="--c:${cssv(C[i%4])}"><span class="sw"></span>${v._arm.wlabel}${apr}</span>`;}).join('');
-  hint.innerHTML=(key==='net'?'cumulative performance (= income + cost) &middot; matches value/share':key==='income'?'income kept from rewards + LP fees (positive)':'value lost to swaps (negative)')+' &middot; % of vault value &middot; dashed = trend from origin, slope annualised = APR';
-}
-
-function renderTable(arms){
-  const host=document.getElementById('events-table');
-  let rows=[];
-  arms.forEach((v,i)=>{const c=cssv(C[i%4]);(v.events||[]).forEach(e=>rows.push({...e,arm:v._arm.wlabel,c,usdc:v.usdcQuote}));});
-  rows.sort((a,b)=>b.ts-a.ts);
-  if(!rows.length){host.innerHTML='<div class="empty">No rebalances or harvests recorded yet for this pair.</div>';return;}
-  const pct=(x,cls)=>x==null?'<span class="mut">&ndash;</span>':`<span class="${cls||(x>=0?'pos':'neg')}">${(x>=0?'+':'')+x.toFixed(3)}%</span>`;
-  const capped=arms.some(v=>v._eventsCapped);
-  host.innerHTML=`<div class="etable"><table><thead><tr>
-    <th>Time (UTC)</th><th>Arm</th><th>Type</th><th>Income</th><th>Cost</th><th>Net</th></tr></thead><tbody>`+
-    rows.slice(0,200).map(r=>`<tr>
-      <td class="mut">${new Date(r.ts*1000).toISOString().slice(0,16).replace('T',' ')}</td>
-      <td><span class="armdot" style="background:${r.c}"></span> ${r.arm}</td>
-      <td><span class="kind">${r.kind==='rebalance'?'&#9650; rebalance':'&#9670; harvest'}</span></td>
-      <td>${pct(r.incomePct,'pos')}</td><td>${pct(r.costPct,'neg')}</td><td>${pct(r.netPct)}</td></tr>`).join('')
-    +`</tbody></table></div>`+(capped?'<div class="hint" style="margin-top:.5rem">Income &amp; cost are % of vault value; income + cost = net. Older events beyond the recent 70/vault are omitted here (card counts are exact).</div>':'<div class="hint" style="margin-top:.5rem">Income &amp; cost are % of vault value; income + cost = net.</div>');
-}
-
-function renderFoot(arms){
-  const f=document.getElementById('foot');
-  const note = curPair.includes('USDC/')&&/AAPLc|GOOGLc|METAc|NVDAc/.test(curPair)
-    ? 'Stock vaults deployed 2026-08-28 &mdash; short history; series fill in over days. '
-    : '';
-  f.innerHTML=`${note}Performance line = <b>getPricePerFullShare()</b> indexed to 100: the vault's own value-per-share in liquidity units, <b>idle-inclusive</b> (position L + idle-as-L via underlyingBalanceWithInvestment). Deposit- and price-neutral, so it isolates fee + reward compounding minus rebalance cost. Range bands are the active tick range converted to price; &#9650; marks rebalances and &#9670; harvests on the price line. Income = AERO (net of the 10% protocol fee) + LP fees kept (positive); cost = value lost to swaps (negative); net = income + cost, and cumulative net equals the value/share gain exactly. Cost absorbs anything not captured as measured income (swap impact, divergence-loss crystallisation), so treat it as an upper bound on pure swap cost. APR annualises each vault's net gain over its own age &mdash; directly comparable across ages, but noisy for vaults only hours/days old. Snapshot at block ${DATA.generatedAtBlock}; re-run the collector to refresh.`;
-}
-renderAll();
-
-// --- live auto-refresh: reload when the server has newer on-chain data ---
-(function(){
-  const curBlock=(DATA&&DATA.generatedAtBlock)||0;
-  async function check(){
-    if(document.visibilityState!=='visible')return;
-    try{ const r=await fetch('/api/meta',{cache:'no-store'}); const m=await r.json();
-      if(m&&m.block&&m.block>curBlock){ location.reload(); } }catch(e){}
+// ---------------------------------------------------------------------------------------- performance
+function perfSeries(a, t0, measure) {
+  const sp = M.span(a, t0, Infinity); if (!sp) return null;
+  const b = sp[0], pB = a.price(b), vB = a.v0[b], ppsB = a.pps[b];
+  const pts = [];
+  for (let i = b; i < a.t.length; i++) {
+    if (!(a.v0[i] > 0)) { pts.push({ t: a.t[i], y: null }); continue; }
+    const L = a.v0[i] / vB, r = a.price(i) / pB;
+    let y;
+    if (measure === 'hold') y = (L / (0.5 + 0.5 * r) - 1) * 100;
+    else if (measure === 'marked') y = (L / Math.sqrt(r) - 1) * 100;
+    else if (measure === 'booked') y = ppsB > 0 && a.pps[i] > 0 ? (a.pps[i] / ppsB - 1) * 100 : null;
+    else if (measure === 't0') y = (L - 1) * 100;
+    else y = (L / r - 1) * 100;
+    pts.push({ t: a.t[i], y });
   }
-  setInterval(check, 45000);
-  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')check(); });
-})();
+  return pts;
+}
+function renderPerf(g) {
+  const host = $('perf-chart'), leg = $('perf-legend');
+  const [t0, t1] = windowNow();
+  const series = g.arms.map(a => { const pts = perfSeries(a, t0, st.measure) || []; return { a, pts, ts: pts.map(p => p.t) }; });
+  let refs = [];
+  if (st.measure === 'hold') {
+    // holding only one of the two tokens, against holding 50/50, from the earliest start in view
+    const P = poolPrice(g).filter(p => p.grid && p.t >= t0);
+    if (P.length) { const pB = P[0].y; const one = (k, fn) => ({ label: k, pts: P.map(p => { const r = p.y / pB, H = 0.5 + 0.5 * r; return { t: p.t, y: fn(r, H) }; }) });
+      refs = [Object.assign(one('holding only ' + g.sym0, (r, H) => (1 / H - 1) * 100), { color: cssv('--muted'), dash: '2 3' }),
+              Object.assign(one('holding only ' + g.sym1, (r, H) => (r / H - 1) * 100), { color: cssv('--price'), dash: '6 4' })]; }
+  }
+  let lo = Infinity, hi = -Infinity;
+  const fold = pts => { let lastBefore = null; for (const p of pts) { if (p.y == null) continue; if (p.t >= t0 && p.t <= t1) { lo = Math.min(lo, p.y); hi = Math.max(hi, p.y); } else if (p.t > t1) { lo = Math.min(lo, p.y); hi = Math.max(hi, p.y); break; } } };
+  series.forEach(s => fold(s.pts)); refs.forEach(r => fold(r.pts));
+  if (!isFinite(lo)) { lo = -1; hi = 1; }
+  lo = Math.min(lo, 0); hi = Math.max(hi, 0);
+  const pad = (hi - lo) * 0.08 || 0.5; lo -= pad; hi += pad;
+  const dec = hi - lo < 0.5 ? 3 : hi - lo < 5 ? 2 : 1;
+  const f = frame(host, t0, t1, lo, hi, { zeroLine: true, yfmt: v => (v > 0 ? '+' : '') + v.toFixed(dec) + '%' });
+  refs.forEach(r => { r.ts = r.pts.map(p => p.t); drawLine(f, r.pts, r.color, { width: 1.1, dash: r.dash, opacity: .55, noGaps: true }); });
+  series.forEach(s => { drawLine(f, s.pts, cssv(s.a.color)); const last = [...s.pts].reverse().find(p => p.y != null && p.t <= t1); if (last) f.svg.appendChild(mk('circle', { cx: f.X(last.t), cy: f.Y(last.y), r: 3, fill: cssv(s.a.color), 'clip-path': f.clip })); });
+  interact(f, t => {
+    let rows = '';
+    series.forEach(s => { if (!s.pts.length || t < s.pts[0].t) return; const i = nearest(s.ts, t); const y = s.pts[i].y; rows += trow(cssv(s.a.color), s.a.name, y == null ? '&ndash;' : pct(y)); });
+    refs.forEach(r => { if (!r.pts.length) return; const i = nearest(r.ts, t); rows += trow(r.color, r.label, pct(r.pts[i].y)); });
+    return rows;
+  });
+  const end = s => { const p = [...s.pts].reverse().find(p => p.y != null && p.t <= t1); return p ? ` <span class="apr">${pct(p.y)}</span>` : ''; };
+  leg.innerHTML = series.map(s => `<span style="--c:${cssv(s.a.color)}"><span class="sw"></span>${s.a.name}${st.measure === 'booked' && s.a.ppsUnit !== 'L' ? ' (in ' + g.sym0 + ')' : ''}${end(s)}</span>`).join('')
+    + refs.map(r => `<span style="--c:${r.color}"><span class="sw dash"></span>${r.label}</span>`).join('');
+  const H = {
+    hold: 'value of one share against holding half the value in each token, bought at the start of the view; the dashed lines are holding only one of the two',
+    marked: 'value of one share against a 50/50 mix kept at 50/50; equals the share price with the loss not yet booked in the current range added, as if it re-centred now',
+    booked: 'the vault’s own share price (in liquidity units, which book the range loss only at rebalances; the parked vault’s is in ' + g.sym0 + ')',
+    t0: 'value of one share in ' + g.sym0, t1: 'value of one share in ' + g.sym1,
+  };
+  $('perf-hint').innerHTML = H[st.measure] + ' &middot; change from the start of the view';
+}
+
+// ---------------------------------------------------------------------------------------- income and cost
+function econSeries(a, t0, key) {
+  const sp = M.span(a, t0, Infinity); if (!sp) return [];
+  const tA = a.t[sp[0]];
+  const pts = [{ t: tA, y: 0 }];
+  if (key === 'lend') { if (!a.lend) return []; const b = a.lend[sp[0]]; for (let i = sp[0] + 1; i < a.t.length; i++) pts.push({ t: a.t[i], y: a.lend[i] - b }); return pts; }
+  const val = e => key === 'net' ? e.net : key === 'aero' ? e.aero : key === 'fee' ? e.fee : (e.kind === 'h' ? 0 : e.cost);
+  // events step the line; for the parked vault the net also takes lending between samples
+  const marks = a.ev.filter(e => e.ts > tA).map(e => ({ t: e.ts, d: val(e) || 0, step: true }));
+  if (key === 'net' && a.lend) for (let i = sp[0] + 1; i < a.t.length; i++) marks.push({ t: a.t[i], d: a.lend[i] - a.lend[i - 1] });
+  marks.sort((x, y) => x.t - y.t);
+  let acc = 0;
+  for (const m of marks) { if (m.step) pts.push({ t: m.t, y: acc }); acc += m.d; pts.push({ t: m.t, y: acc }); }
+  pts.push({ t: a.t[a.t.length - 1], y: acc });
+  return pts;
+}
+function trendFit(pts, t0, t1) {
+  let sxy = 0, sxx = 0, n = 0; const base = pts.length ? pts[0].y : 0, o = pts.length ? pts[0].t : t0;
+  pts.forEach(p => { if (p.t >= o && p.t <= t1) { const dx = p.t - o, dy = p.y - base; sxy += dx * dy; sxx += dx * dx; n++; } });
+  if (!n || !(sxx > 0)) return null;
+  const slope = sxy / sxx; return { o, base, at: x => base + slope * (x - o), apr: slope * 365 * DAY };
+}
+function renderEcon(g) {
+  const host = $('econ-chart'), leg = $('econ-legend');
+  const [t0, t1] = windowNow();
+  const key = st.econ;
+  const series = g.arms.map(a => { const pts = econSeries(a, t0, key); return { a, pts, ts: pts.map(p => p.t) }; });
+  const anySplit = g.arms.some(a => a.ev.some(e => e.aero != null));
+  if ((key === 'aero' || key === 'fee') && !anySplit) { host.innerHTML = '<div class="empty">The AERO and swap-fee split is still being read for these events.</div>'; leg.innerHTML = ''; return; }
+  let lo = 0, hi = 0;
+  series.forEach(s => s.pts.forEach(p => { if (p.t <= t1) { lo = Math.min(lo, p.y); hi = Math.max(hi, p.y); } }));
+  if (hi - lo < 0.2) { hi += 0.1; lo -= 0.1; }
+  const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+  const dec = hi - lo < 0.5 ? 3 : hi - lo < 5 ? 2 : 1;
+  const f = frame(host, t0, t1, lo, hi, { zeroLine: true, yfmt: v => (v > 0 ? '+' : '') + v.toFixed(dec) + '%' });
+  const trends = series.map(s => s.pts.length > 2 ? trendFit(s.pts, t0, t1) : null);
+  series.forEach((s, i) => {
+    const c = cssv(s.a.color);
+    drawLine(f, s.pts, c, { noGaps: key !== 'lend' });
+    const tr = trends[i]; if (tr) f.svg.appendChild(mk('line', { x1: f.X(tr.o), y1: f.Y(tr.at(tr.o)), x2: f.X(t1), y2: f.Y(tr.at(t1)), stroke: c, 'stroke-width': 1.2, 'stroke-dasharray': '5 4', 'stroke-opacity': .7, 'clip-path': f.clip }));
+  });
+  interact(f, t => {
+    let rows = '';
+    series.forEach(s => { if (!s.pts.length || t < s.pts[0].t) return; const i = before(s.ts, t); rows += trow(cssv(s.a.color), s.a.name, pct(s.pts[Math.max(0, i)].y, 3)); });
+    return rows;
+  });
+  leg.innerHTML = series.map((s, i) => { const tr = trends[i]; const last = s.pts.filter(p => p.t <= t1).pop(); return `<span style="--c:${cssv(s.a.color)}"><span class="sw"></span>${s.a.name}${last ? ' <span class="apr">' + pct(last.y) + (tr ? ' &middot; trend ' + aprTxt(tr.apr) : '') + '</span>' : key === 'lend' && !s.a.lend ? ' <span class="apr">does not lend</span>' : ''}</span>`; }).join('');
+  const H = {
+    net: 'every event’s effect on the share price, added up from the start of the view (and lending income for the parked vault)',
+    aero: 'AERO sold or claimed, after the protocol fee, as % of the vault’s value at each event',
+    fee: 'swap fees collected by the unstaked part of the position, as % of the vault’s value',
+    lend: 'interest earned on what the parked vault lends on Aave, as % of its value',
+    cost: 'what each rebalance cost: for centred vaults the range loss booked at re-centring plus the swap; for the edge and parked vaults the move’s own cost (swap fee and price impact)',
+  };
+  $('econ-hint').innerHTML = H[key] + ' &middot; dashed: straight-line trend from the start of the view, shown as a yearly rate';
+}
+
+// ---------------------------------------------------------------------------------------- events table
+function renderTable(g) {
+  const host = $('events-table');
+  const [t0, t1] = windowNow();
+  const rows = [];
+  g.arms.forEach(a => a.ev.forEach(e => { if (e.ts >= t0 - 1 && e.ts <= t1 + 1) rows.push({ e, a }); }));
+  rows.sort((x, y) => y.e.ts - x.e.ts);
+  if (!rows.length) { host.innerHTML = '<div class="empty">No rebalances or harvests in this timeframe.</div>'; $('events-hint').textContent = ''; return; }
+  const cell = (x, c) => x == null ? '<span class="mut">&ndash;</span>' : Math.abs(x) < 5e-6 ? '<span class="mut">0</span>' : `<span class="${c || (x >= 0 ? 'pos' : 'neg')}">${(x >= 0 ? '+' : '&minus;') + Math.abs(x).toFixed(Math.abs(x) < 0.001 ? 4 : 3)}%</span>`;
+  const shown = rows.slice(0, 300);
+  host.innerHTML = `<div class="etable"><table><thead><tr><th>Time (UTC)</th><th>Vault</th><th>What</th><th>AERO</th><th>Swap fees</th><th>Cost</th><th>Net</th></tr></thead><tbody>`
+    + shown.map(({ e, a }) => `<tr><td class="mut">${utc(e.ts)}</td><td><span class="armdot" style="background:${cssv(a.color)}"></span>${a.name}</td><td>${KIND[e.kind] || e.kind}</td><td>${cell(e.aero, 'pos')}</td><td>${cell(e.fee, 'pos')}</td><td>${cell(e.cost, 'neg')}</td><td>${cell(e.net)}</td></tr>`).join('')
+    + `</tbody></table></div>`;
+  $('events-hint').innerHTML = `${rows.length} in this timeframe${rows.length > shown.length ? ', newest ' + shown.length + ' listed' : ''} &middot; % of the vault’s value at the event &middot; AERO + swap fees + cost = net`;
+}
+
+// ---------------------------------------------------------------------------------------- footer and theme
+function renderFoot(g) {
+  const v = st.view;
+  $('foot').innerHTML = `
+    <p><b>Samples.</b> Each vault is read once an hour on the hour (block by block from its start, from archive state) and at the latest block; rebalances and harvests are read at the exact block. Lines are solid where hourly samples exist and dashed across stretches still without them.</p>
+    <p><b>vs holding 50/50</b> compares the value of one share (position, idle and lent tokens, at the pool price) with holding half its starting value in each token. <b>Marked</b> compares it with a 50/50 mix kept at 50/50. For a centred vault this is its <b>booked</b> share price, in liquidity units, plus the loss its current range has not yet booked: that loss is booked only when the vault re-centres, so a wide range that has not moved looks better booked than it is.</p>
+    <p><b>Income</b> is AERO (net of the protocol fee; for the edge vault, what its sale paid in ${g ? g.sym0 : 'USDC'}) and swap fees collected; for the parked vault also lending interest. <b>Cost at a rebalance</b> is the rest of the event's change in share price. For centred vaults it holds the range loss booked at re-centring and the swap; for the edge and parked vaults, whose share price is not in centred liquidity units, it is the move's own cost at the price just before it, and their range loss shows in the marked line instead. Yearly rates are simple: the change times 365 over the days in view.</p>
+    <p>Volatility is the standard deviation of 4-hour moves of the pool price in view, scaled to a day. Snapshot at block ${v.generatedAtBlock.toLocaleString('en-US')}; the page reloads its data when a newer one is ready. Data: <a href="/api/data" style="color:inherit">/api/data</a>.</p>`;
+}
+function applyTheme() { const r = document.documentElement; if (st.theme === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', st.theme); const b = $('theme'); if (b) b.textContent = 'Theme: ' + st.theme; }
+$('theme').onclick = () => { st.theme = st.theme === 'auto' ? 'light' : st.theme === 'light' ? 'dark' : 'auto'; applyTheme(); save(); if (st.view) renderAll(); };
+if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (st.theme === 'auto' && st.view) renderAll(); });
+
+// ---------------------------------------------------------------------------------------- live reload
+load(true);
+setInterval(async () => {
+  if (document.visibilityState !== 'visible' || !st.view) return;
+  try { const m = await (await fetch('/api/meta', { cache: 'no-store' })).json(); if (m && m.block && m.block > st.view.generatedAtBlock) load(false); } catch (e) {}
+}, 45000);
 </script>
 </body>
 </html>
