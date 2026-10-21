@@ -30,9 +30,34 @@ lands and remembers each viewer's pool, timeframe and chart choices.
 
 Designs it knows: `CLVault` (V1), `CLVaultV2`, `CLVaultV3` (including the gauge strategy that sells
 AERO for USDC and sends it to the vault) and `ParkedVault`. Vaults on the same pool are shown together.
-It works with the gauges of Aerodrome's deployment from 2026-10-22 too: their claims emit
-`EmissionsClaimed` rather than `ClaimRewards`, so for a V3 vault the harvests and AERO income are read
-from its strategy's own `RewardSold` events, and the parked vault's from its `Harvested` events.
+
+## Aerodrome addresses: `chain.json`
+
+Nothing about Aerodrome's deployment is written into the code. `chain.json` (or the file `CHAIN_CONFIG`
+names) lists, each with a note:
+
+- `usdc`: the token prices are read against;
+- `factories` and `tickSpacings`: where the X/USDC pools that price tokens are searched for. It lists the
+  original factory, the stock vaults' second factory, and the factory of Aerodrome's deployment live from
+  2026-10-22;
+- `rewardTokens`: AERO and the new AERO it converts to 1:1. Any of them arriving at a strategy in a
+  harvest's transaction counts as reward claimed, whether the gauge sends it or a voter mints it;
+- `rewardPricePools`: optional fixed AERO/USDC pools; empty means every reward-token/USDC pool on the
+  factories;
+- `claimEvents`: gauge events that mark a harvest (`ClaimRewards` on the gauges before 2026-10-22);
+- `harvestEvent`: the controller's `SharePriceChangeLog`, which marks every harvest whatever the gauge
+  or the reward.
+
+A price at a block (AERO for the income of V1/V2 vaults, the vault tokens for TVL and for valuing AERO
+in token0) comes from the candidate pool with the most liquidity in range at that block, whichever of
+its two tokens is USDC. So the price follows liquidity from the old AERO/USDC pools to the new ones
+(where AERO is token0), and a pool not yet funded is never used. The pools found are kept for 6 hours.
+
+Vaults on Aerodrome's new gauges: a V3 vault's harvests and AERO income come from its strategy's own
+`RewardSold` events (the new gauges emit `EmissionsClaimed`, not `ClaimRewards`), the parked vault's from
+its `Harvested` events, and any vault with a controller from the controller's log. A vault that has
+been unstaked (for example with the strategy's `emergencyExit()`) and earns no AERO keeps charting: its
+samples, swap fees and harvests are read the same way, with AERO at zero.
 
 The two cbBTC/USDC experiment vaults, once deployed (addresses from their deploy scripts; `startTs` is
 the first deposit's time, as both design notes suggest). Their pool is found on chain, whichever new
@@ -73,6 +98,7 @@ npm test     # the collector against a simulated chain: both experiment designs,
 | `CONCURRENCY` | `4` | vaults collected in parallel |
 | `RPC_IN_FLIGHT` | `8` | RPC requests in flight at once. Lower it if the log shows rate-limit errors |
 | `CACHE_FILE` | `./data-cache.json` | where the snapshot is kept between refreshes and restarts |
+| `CHAIN_CONFIG` | `./chain.json` | Aerodrome addresses and events (see above) |
 
 ## How the data is collected
 
@@ -82,7 +108,8 @@ npm test     # the collector against a simulated chain: both experiment designs,
   (daily, 4-hourly, 2-hourly, hourly) under `BACKFILL_CALLS` per refresh; the page draws stretches
   without samples dashed and says how much is still to read. A full rebuild of the 20 vaults is about
   31,000 samples: about ten refreshes, under an hour.
-- **Events at their block.** Rebalances and harvests are read from logs and each is measured just
+- **Events at their block.** Rebalances and harvests (the vault's events, the configured gauge claim
+  events, the strategy's `RewardSold`, the controller's harvest log) are read from logs and each is measured just
   before (block − 1) and after (block): its effect on the share price, split into AERO income, swap-fee
   income and cost, the price around it and the new range. The range shown on the price chart steps at
   the exact rebalance, not at the next sample.

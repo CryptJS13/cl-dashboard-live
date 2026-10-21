@@ -1,0 +1,29 @@
+{
+  "_about": "Everything Aerodrome-specific the collector uses beyond what it reads from each vault. Edit this file (or point CHAIN_CONFIG at another) when Aerodrome changes deployments; no code change is needed. Each '_note' explains the key after it.",
+
+  "_note_usdc": "The dollar: prices are read against this token.",
+  "usdc": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+
+  "_note_factories": "Slipstream factories searched for the X/USDC pools that price tokens (vault tokens for TVL, reward tokens for AERO income). Original factory, the second factory of the stock vaults, and the deployment live from 2026-10-22.",
+  "factories": [
+    "0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A",
+    "0xf8f2eb4940cfe7d13603dddd87f123820fc061ef",
+    "0x9CB220581b91b0C83223012FE69688b92aD07a76"
+  ],
+  "_note_tickSpacings": "Tick spacings tried on each factory when searching for those pools.",
+  "tickSpacings": [1, 10, 50, 100, 200, 2000],
+
+  "_note_rewardTokens": "Gauge reward tokens. AERO before 2026-10-22, and the new AERO it converts to 1:1. A transfer of any of them into a strategy in a harvest's transaction counts as reward claimed (V1/V2 vaults value it at its USDC price at the time).",
+  "rewardTokens": [
+    "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+    "0x3f5bF3EdAc59d650D8fDf9657a71F2f904A3a4Ee"
+  ],
+  "_note_rewardPricePools": "Optional fixed list of reward-token/USDC pools. Empty: every reward-token/USDC pool on the factories above is a candidate. Either way the price at a block comes from the candidate with the most liquidity in range at that block, whichever of its two tokens the reward token is.",
+  "rewardPricePools": [],
+
+  "_note_claimEvents": "Gauge events that mark a harvest, with the strategy as first indexed argument. The gauges before 2026-10-22 emit ClaimRewards; add the new gauges' event here when a V1/V2-style vault runs on one (V3 and parked vaults are read from their own events).",
+  "claimEvents": ["ClaimRewards(address,uint256)"],
+
+  "_note_harvestEvent": "Event of the vault's controller (vault.controller()) that marks each harvest, with the vault as first indexed argument. It does not depend on the gauge or the reward token, so harvests keep showing once a vault is unstaked and earns no AERO. Empty string to turn off.",
+  "harvestEvent": "SharePriceChangeLog(address,address,uint256,uint256,uint256)"
+}

@@ -95,6 +95,6 @@ app.use(express.static(path.join(__dirname, "public"), { setHeaders: r => r.set(
 const BUILD = "v4-grid";                  // bump on deploy-visible changes; printed at startup to confirm which code is live
 app.listen(PORT, () => {
   const shown = RPC_URL ? RPC_URL.split(",").map(u => u.replace(/\/v2\/.*/, "/v2/***").replace(/([?&](key|apikey|token)=)[^&]+/i, "$1***")).join(", ") : "none";
-  console.log(`CL vault dashboard [${BUILD}] on http://localhost:${PORT} · RPC ${shown} · ${CONCURRENCY} vaults at once · grid ${GRID_MINUTES} min · refresh every ${REFRESH_MINUTES} min`);
+  console.log(`CL vault dashboard [${BUILD}] on http://localhost:${PORT} · RPC ${shown} · ${CONCURRENCY} vaults at once · grid ${GRID_MINUTES} min · refresh every ${REFRESH_MINUTES} min · addresses from ${process.env.CHAIN_CONFIG || "chain.json"}`);
   if (!READ_ONLY) { refresh(); setInterval(refresh, REFRESH_MINUTES * 60 * 1000); }
 });

@@ -9,6 +9,7 @@ const M = require("../public/metrics");
 const VAULTS = [
   { id: "aeroCL_USDC_cbBTC_16edge", vault: ADDR.VA, label: "always in (edge re-entry)" },
   { id: "aeroCL_USDC_cbBTC_16parked", vault: ADDR.VB, label: "parked by default" },
+  { id: "aeroCL_USDC_cbBTC_64v1", vault: ADDR.VC },
 ];
 const near = (x, y, tol, msg) => assert.ok(Math.abs(x - y) <= tol, `${msg}: ${x} vs ${y} (tolerance ${tol})`);
 const sum = (arr, f) => arr.reduce((s, x) => s + (f(x) || 0), 0);
@@ -83,6 +84,27 @@ test("vault B: enters, leaves and moves, with the keeper's cost from the vault's
   assert.equal(w.nEnter, T.enters); assert.equal(w.booked, null, "no liquidity-unit share price for the parked vault");
 });
 
+test("vault C (V1): harvests found through the controller across the switch to new AERO and after it stops earning", () => {
+  const c = data.vaults[2], T = chain.truth.C;
+  assert.equal(c.design, "V1"); assert.equal(c.widthTicks, 6400);
+  const harv = c.events.filter(e => e.kind === "harvest");
+  assert.equal(harv.length, T.harvests, "every harvest, including those with no claim event and no AERO");
+  harv.forEach((e, i) => {
+    const t = T.events[i];
+    assert.equal(e.block, t.block);
+    near(e.aeroPct, t.aeroPct, 2e-4, `harvest ${i} AERO %`);
+    if (t.price) near(e.income / (e.aeroClaimed * 0.9), t.price, 0.005, `harvest ${i} priced on the pool deepest at the time`);
+    else assert.equal(e.aeroClaimed, 0);
+  });
+  assert.ok(T.events.some(e => e.price === 0.89) && T.events.some(e => e.price === chain.aeroUsdNew), "both pools were used");
+  // after the exit: no AERO, and the figures still come out
+  const a = M.decode(buildView(data).vaults[2]);
+  const lastPaid = harv.filter(e => e.aeroClaimed > 0).pop();       // its AERO was earned before the exit
+  const w = M.windowStats(a, lastPaid.ts + 1, a.t[a.t.length - 1], 3600);
+  assert.ok(w && Math.abs(w.aero) < 1e-9 && w.nHarv === T.events.filter(e => !e.price).length, "unstaked stretch: no AERO, harvests still counted");
+  assert.ok(isFinite(w.vsHold) && isFinite(w.marked));
+});
+
 test("figures: vs holding 50/50 and marked agree with the definitions on the samples", () => {
   const view = buildView(data);
   for (const vv of view.vaults) {
@@ -103,7 +125,7 @@ test("a second refresh at the same head reads only the head sample, the logs and
   const before = chain.rpc.counter.n;
   const d2 = await collectAll(null, { rpc: chain.rpc, vaults: VAULTS, prev: data });
   const used = chain.rpc.counter.n - before;
-  assert.ok(used < 40, `incremental refresh used ${used} calls`);
+  assert.ok(used < 25 * VAULTS.length, `incremental refresh used ${used} calls for ${VAULTS.length} vaults`);
   assert.equal(d2.vaults[0].events.length, data.vaults[0].events.length);
   assert.equal(d2.vaults[1].gridFilled, data.vaults[1].gridFilled);
 });
@@ -116,7 +138,7 @@ test("migrates the earlier build's cache: keeps its events, rebuilds the samples
   })) };
   const receiptsBefore = countMethod("eth_getTransactionReceipt");
   const view0 = buildView(legacy);                         // the page can show the old cache before the first refresh
-  assert.equal(view0.legacy, true); assert.equal(view0.vaults.length, 2);
+  assert.equal(view0.legacy, true); assert.equal(view0.vaults.length, VAULTS.length);
   const d = await collectUntilFull(chain, VAULTS, legacy);
   assert.equal(countMethod("eth_getTransactionReceipt"), receiptsBefore, "old events are not read again");
   for (const v of d.vaults) {

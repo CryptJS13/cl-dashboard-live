@@ -26,12 +26,18 @@ const ADDR = {
   // placeholders for the tests only
   VA: "0x00000000000000000000000000000000000a0001", SA: "0x00000000000000000000000000000000000a0002",
   VB: "0x00000000000000000000000000000000000b0001", SB: "0x00000000000000000000000000000000000b0002",
+  VC: "0x00000000000000000000000000000000000c0001", SC: "0x00000000000000000000000000000000000c0002",
+  CTRL: "0x00000000000000000000000000000000000cccc1", VOTER: "0x00000000000000000000000000000000000cccc2",
+  // Aerodrome's deployment from 2026-10-22 (read on chain): factory, new AERO, its USDC pool at spacing 100 (AERO is token0)
+  NEW_FACTORY: lc("0x9CB220581b91b0C83223012FE69688b92aD07a76"), AERO_NEW: lc("0x3f5bF3EdAc59d650D8fDf9657a71F2f904A3a4Ee"),
+  AERO_POOL_NEW: lc("0x422df9aa896e883c9cdcbad309c0785b7364a1cf"),
 };
 const T = {
   transfer: utils.id("Transfer(address,address,uint256)"), claim: utils.id("ClaimRewards(address,uint256)"),
   rebV2: utils.id("RangeRebalanced(uint256,uint256,uint256,uint256,uint256,uint256)"), rebV1: utils.id("Rebalanced(uint256,uint256,uint256,uint256,uint256)"),
   harvested: utils.id("Harvested(uint256,uint256,uint256)"), rewardSold: utils.id("RewardSold(uint256,uint256,uint256,uint256)"),
   feesCollected: utils.id("FeesCollected(uint256,uint256,uint256,uint256)"),
+  sharePrice: utils.id("SharePriceChangeLog(address,address,uint256,uint256,uint256)"),
 };
 const topicAddr = a => "0x" + "0".repeat(24) + lc(a).slice(2);
 const U = x => coder.encode(["uint256"], [BigInt(Math.max(0, Math.round(x)))]);
@@ -67,9 +73,9 @@ function buildChain(opts = {}) {
   function liqFor(lo, hi, s, a0, a1) { const [u0, u1] = amountsFor(1, lo, hi, s); let L = Infinity; if (u0 > 0) L = Math.min(L, a0 / u0); if (u1 > 0) L = Math.min(L, a1 / u1); return isFinite(L) ? L : 0; }
   const centred = tick => { const lo = Math.floor(tick / SPACING) * SPACING - WIDTH / 2; return [lo, lo + WIDTH]; };
   const edge = (tick, below) => { if (below) { const lo = (Math.floor(tick / SPACING) - 1) * SPACING; return [lo, lo + WIDTH]; } const hi = (Math.floor(tick / SPACING) + 2) * SPACING; return [hi - WIDTH, hi]; };
-  const aeroUsd = 0.89, aeroTick = Math.round(Math.log(1e12 / aeroUsd) / Math.log(1.0001));
   const usdc = x => x * 1e6;                              // whole USDC to raw
 
+  const aeroUsd = 0.89, aeroTick = Math.round(Math.log(1e12 / aeroUsd) / Math.log(1.0001));
   const logs = [], receipts = {};
   let nonce = 0;
   const txh = () => utils.id("tx" + (nonce++));
@@ -82,6 +88,11 @@ function buildChain(opts = {}) {
   const snap = (arr, blk, obj) => arr.push({ block: blk, st: { ...obj } });
   const truth = { A: { events: [], aeroT0: 0, feesT0: 0, reentries: 0, harvests: 0 }, B: { events: [], enters: 0, exits: 0, replaces: 0, harvests: 0, deployedSec: 0, lendT0: 0, aeroT0: 0 } };
 
+  const c = { L: 0, lo: 0, hi: 0, supply: 0, aero: 0 }, snapsC = [];
+  truth.C = { events: [], harvests: 0 };
+  const switchTs = Math.floor(tsOf(birthA) / 86400 + (opts.switchDay || 4)) * 86400, exitTs = Math.floor(tsOf(birthA) / 86400 + (opts.exitDay || 8)) * 86400;
+  const aeroUsdNew = 0.80, aeroTickNew = Math.round(Math.log(aeroUsdNew * 1e6 / 1e18) / Math.log(1.0001));
+  const navC = (st, s) => valueIn0(...amountsFor(st.L, st.lo, st.hi, s), s);
   const navA = (st, s) => valueIn0(...amountsFor(st.L, st.lo, st.hi, s), s) + st.vIdle0 + st.sIdle0 + st.sIdle1 / (s * s);
   const navB = (st, blk, s) => valueIn0(...amountsFor(st.L, st.lo, st.hi, s), s) + st.s0 * ixAt(blk, APR0) + st.s1 * ixAt(blk, APR1) / (s * s);
 
@@ -124,6 +135,30 @@ function buildChain(opts = {}) {
         receipts[tx].status = "0x1";
         a.aero = 0; a.fees = 0;
         snap(snapsA, blk, a);
+      }
+    }
+    // ===== C (V1 design): staked, harvested daily at 12:00 into its position. Until the switch day it claims the
+    // old AERO from the gauge (ClaimRewards); after it, new AERO minted through a voter (no ClaimRewards), priced
+    // on the new pool; from the exit day it is unstaked and earns nothing. The controller logs every harvest.
+    if (blk >= depA && c.supply === 0) {
+      [c.lo, c.hi] = [Math.floor(tick / SPACING) * SPACING - 3200, Math.floor(tick / SPACING) * SPACING + 3200];
+      c.L = usdc(1000) / rangeValuePerL(c.lo, c.hi, s); c.supply = c.L; snap(snapsC, blk, c);
+    } else if (c.supply > 0) {
+      const posV = valueIn0(...amountsFor(c.L, c.lo, c.hi, s), s);
+      if (tsOf(blk) < exitTs) c.aero += posV * 0.15 / 365 / 144;
+      if (Math.floor((tsOf(blk) % 86400) / 600) === 72) {          // 12:00 UTC
+        const tx = txh(), after = tsOf(blk) >= switchTs, price = after ? aeroUsdNew : aeroUsd;
+        const amt = c.aero / price * 1e12;                         // AERO raw
+        if (amt > 0) {
+          if (!after) emit(blk, tx, ADDR.GAUGE, [T.claim, topicAddr(ADDR.SC)], U(amt));
+          emit(blk, tx, after ? ADDR.AERO_NEW : ADDR.AERO, [T.transfer, topicAddr(after ? ADDR.VOTER : ADDR.GAUGE), topicAddr(ADDR.SC)], U(amt));
+        }
+        emit(blk, tx, ADDR.CTRL, [T.sharePrice, topicAddr(ADDR.VC), topicAddr(ADDR.SC)], coder.encode(["uint256", "uint256", "uint256"], [1n, 1n, BigInt(tsOf(blk))]));
+        const nav = navC(c, s), proceeds = c.aero * 0.9;
+        c.L += proceeds / rangeValuePerL(c.lo, c.hi, s);
+        truth.C.events.push({ block: blk, aeroPct: proceeds / nav * 100, price: amt > 0 ? price : null });
+        truth.C.harvests++; c.aero = 0; receipts[tx].status = "0x1";
+        snap(snapsC, blk, c);
       }
     }
     // ===== B
@@ -196,11 +231,23 @@ function buildChain(opts = {}) {
       if (s4 === sel("token0()")) return A(ADDR.USDC);
       if (s4 === sel("token1()")) return A(ADDR.CBBTC);
     }
-    if (to === ADDR.AERO_POOL && s4 === sel("slot0()")) return coder.encode(["uint160", "int24", "uint16", "uint16", "uint16", "bool"], [1n, aeroTick, 0, 1, 1, true]);
+    const switched = tsOf(blk) >= switchTs;
+    if (to === ADDR.AERO_POOL || to === ADDR.AERO_POOL_NEW) {
+      const isNew = to === ADDR.AERO_POOL_NEW;
+      if (s4 === sel("slot0()")) return coder.encode(["uint160", "int24", "uint16", "uint16", "uint16", "bool"], [1n, isNew ? aeroTickNew : aeroTick, 0, 1, 1, true]);
+      if (s4 === sel("liquidity()")) return U(isNew ? (switched ? 5e18 : 0) : (switched ? 1e15 : 3e18));
+      if (s4 === sel("token0()")) return A(isNew ? ADDR.AERO_NEW : ADDR.USDC);
+      if (s4 === sel("token1()")) return A(isNew ? ADDR.USDC : ADDR.AERO);
+    }
+    if (to === ADDR.NEW_FACTORY && s4 === sel("getPool(address,address,int24)")) {
+      const pair = ["0x" + arg.slice(24, 64), "0x" + arg.slice(88, 128)].sort().join(), ts = parseInt(arg.slice(128 + 56, 192), 16);
+      return A(pair === [ADDR.USDC, ADDR.AERO_NEW].sort().join() && ts === 100 ? ADDR.AERO_POOL_NEW : "0x0000000000000000000000000000000000000000");
+    }
     if (to === ADDR.NPM && s4 === sel("factory()")) return A(ADDR.FACTORY);
     if (to === ADDR.FACTORY && s4 === sel("getPool(address,address,int24)")) {
       const t0 = "0x" + arg.slice(24, 64), t1 = "0x" + arg.slice(88, 128), ts = parseInt(arg.slice(128 + 56, 192), 16);
       const pair = [t0, t1].sort().join();
+      if (pair === [ADDR.USDC, ADDR.AERO].sort().join() && ts === 200) return A(ADDR.AERO_POOL);
       return A(pair === [ADDR.USDC, ADDR.CBBTC].sort().join() && ts === SPACING ? ADDR.POOL : "0x0000000000000000000000000000000000000000");
     }
     if (to === ADDR.USDC || to === ADDR.CBBTC) {
@@ -215,6 +262,24 @@ function buildChain(opts = {}) {
       }
     }
     if (to === ADDR.AAVE && s4 === sel("getReserveNormalizedIncome(address)")) return coder.encode(["uint256"], [BigInt(Math.round(ixAt(blk, lc(argAddr()) === ADDR.USDC ? APR0 : APR1) * 1e9)) * 10n ** 18n]);
+    if (to === ADDR.VC || to === ADDR.SC) {
+      if (blk < birthA) return "0x";
+      const st = stAt(snapsC, blk) || { L: 0, lo: 0, hi: 0, supply: 0 };
+      const amts = amountsFor(st.L, st.lo, st.hi, s);
+      const v = {
+        [sel("token0()")]: () => A(ADDR.USDC), [sel("token1()")]: () => A(ADDR.CBBTC), [sel("posManager()")]: () => A(ADDR.NPM),
+        [sel("tickSpacing()")]: () => I(SPACING), [sel("tickLower()")]: () => I(st.lo), [sel("tickUpper()")]: () => I(st.hi),
+        [sel("strategy()")]: () => A(ADDR.SC), [sel("controller()")]: () => A(ADDR.CTRL),
+        [sel("getCurrentTokenAmounts()")]: () => coder.encode(["uint256", "uint256"], [BIG(amts[0]), BIG(amts[1])]),
+        [sel("underlyingBalanceWithInvestment()")]: () => U(st.L), [sel("getPricePerFullShare()")]: () => U(st.supply > 0 ? st.L / st.supply * 1e18 : 1e18),
+        [sel("totalSupply()")]: () => U(st.supply),
+      };
+      const vs = {
+        [sel("rewardPool()")]: () => A(ADDR.GAUGE), [sel("feeDenominator()")]: () => U(10000), [sel("profitSharingNumerator()")]: () => U(700),
+        [sel("platformFeeNumerator()")]: () => U(300), [sel("strategistFeeNumerator()")]: () => U(0),
+      };
+      const f = (to === ADDR.VC ? v : vs)[s4]; return f ? f() : revert();
+    }
     if (to === ADDR.VA || to === ADDR.SA) {
       if (blk < birthA) return "0x";
       const st = stAt(snapsA, blk) || { L: 0, lo: 0, hi: 0, vIdle0: 0, sIdle0: 0, sIdle1: 0, supply: 0, rp: 0 };
@@ -268,7 +333,7 @@ function buildChain(opts = {}) {
     switch (method) {
       case "eth_blockNumber": return "0x" + head.toString(16);
       case "eth_getBlockByNumber": { const bk = blkOf(params[0]); return { number: "0x" + bk.toString(16), timestamp: "0x" + tsOf(bk).toString(16) }; }
-      case "eth_getCode": { const bk = blkOf(params[1]), a2 = lc(params[0]); if ((a2 === ADDR.VA && bk >= birthA) || (a2 === ADDR.VB && bk >= birthB)) return "0x6080"; return "0x"; }
+      case "eth_getCode": { const bk = blkOf(params[1]), a2 = lc(params[0]); if (((a2 === ADDR.VA || a2 === ADDR.VC) && bk >= birthA) || (a2 === ADDR.VB && bk >= birthB)) return "0x6080"; return "0x"; }
       case "eth_call": {
         const { to, data } = params[0], bk = blkOf(params[1]);
         if (lc(to) === ADDR.MC && data.startsWith(MC.getSighash("aggregate3"))) {
@@ -289,7 +354,7 @@ function buildChain(opts = {}) {
     throw new Error("fake chain: no " + method);
   }
   rpc.counter = counter;
-  return { rpc, truth, head, birthA, birthB, depA, depB, ADDR, tickAt, stAt: (k, blk) => stAt(k === "A" ? snapsA : snapsB, blk), ixAt };
+  return { rpc, truth, switchTs, exitTs, aeroUsdNew, head, birthA, birthB, depA, depB, ADDR, tickAt, stAt: (k, blk) => stAt(k === "A" ? snapsA : snapsB, blk), ixAt };
 }
 
 module.exports = { buildChain, ADDR };

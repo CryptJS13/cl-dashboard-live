@@ -31,17 +31,23 @@ const isAddr = a => !!a && lc(a) !== ADDR0;
 const GENESIS_TS = 1686789347;
 const BLOCK_SECONDS = 2;
 
-const USDC = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
-const AERO = "0x940181a94a35a4569e4529a3cdfb74e38fd98631";
-const AERO_USDC_POOL = "0xccd9cc53b63662088c738b8bc06e9078fb8d9ad4"; // tick spacing 200, token0 USDC, token1 AERO
-// Slipstream factories the vaults' position managers use (read on chain from posManager().factory())
-const USD_FACTORIES = ["0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A", "0xf8f2eb4940cfe7d13603dddd87f123820fc061ef"];
+// The Aerodrome-specific addresses and events (USDC, factories, reward tokens, claim and harvest events)
+// come from chain.json, or the file CHAIN_CONFIG names, so a new deployment needs no code change.
+function loadChain(c) {
+  const raw = c || require(process.env.CHAIN_CONFIG ? require("path").resolve(process.env.CHAIN_CONFIG) : "./chain.json");
+  const list = x => (Array.isArray(x) ? x : []).map(lc).filter(Boolean);
+  return {
+    usdc: lc(raw.usdc), factories: list(raw.factories), tickSpacings: (raw.tickSpacings || [1, 10, 50, 100, 200, 2000]).map(Number),
+    rewardTokens: list(raw.rewardTokens), rewardPricePools: list(raw.rewardPricePools),
+    claimTopics: (raw.claimEvents || []).filter(Boolean).map(e => id(e)),
+    harvestTopic: raw.harvestEvent ? id(raw.harvestEvent) : null,
+  };
+}
 
 const T = {
   transfer: id("Transfer(address,address,uint256)"),
   collect: id("Collect(uint256,address,uint256,uint256)"),
   decrease: id("DecreaseLiquidity(uint256,uint128,uint256,uint256)"),
-  claim: id("ClaimRewards(address,uint256)"),
   rebV2: id("RangeRebalanced(uint256,uint256,uint256,uint256,uint256,uint256)"),   // CLVaultV2 and CLVaultV3
   rebV1: id("Rebalanced(uint256,uint256,uint256,uint256,uint256)"),               // CLVault (V1) and ParkedVault
   harvested: id("Harvested(uint256,uint256,uint256)"),                            // ParkedVault
@@ -90,6 +96,7 @@ function deriveNames(entry, m, widthPct) {
 
 async function collectAll(rpcUrls, opts = {}) {
   const VAULTS = opts.vaults || require("./vaults.json");
+  const CH = loadChain(opts.chain);
   const GRID = Math.max(300, opts.gridSeconds || 3600);
   const CAP = opts.cap || 100000;
   const BACKFILL = Math.max(0, opts.backfillCalls != null ? opts.backfillCalls : 3000); // grid reads per refresh, all vaults together
@@ -122,31 +129,73 @@ async function collectAll(rpcUrls, opts = {}) {
   const callAt = async (to, data, b) => { try { const r = await rpc("eth_call", [{ to, data }, "0x" + b.toString(16)]); return r && r !== "0x" ? r : null; } catch { return null; } };
 
   // ---------------------------------------------------------------- USD prices
-  const usdPoolCache = {};
-  async function usdPoolFor(token) {
-    const key = lc(token);
-    if (key === USDC) return { usdc: true };
-    if (usdPoolCache[key] !== undefined) return usdPoolCache[key];
-    let found = null;
-    outer: for (const F of USD_FACTORIES) for (const ts of [100, 200, 2000, 50, 500, 10, 1]) {
-      const r = await callAt(F, sel("getPool(address,address,int24)") + pad(token) + pad(USDC) + int24hex(ts), head);
-      if (!r || BigInt(r) === 0n) continue;
-      const pool = lc(addrAt(r, 0));
-      const t0 = await callAt(pool, sel("token0()"), head);
-      if (!t0) continue;
-      found = { pool, tokenIsToken0: lc(addrAt(t0, 0)) === key };
-      break outer;
+  // A token is priced on its X/USDC pools on the configured factories: at any block, the one with the most
+  // liquidity in range then (a pool with none, e.g. one not yet funded, is never used).
+  const usdcDec = await (async () => { const r = await callAt(CH.usdc, sel("decimals()"), head); return r ? Number(word(r, 0)) : 6; })();
+  // the pools found are kept for 6 hours (new pools are picked up after that); prices are read per block
+  const keepPools = prev && prev._pricePools && prev._pricePools.block > head - 10800 && prev._pricePools.config === JSON.stringify(CH);
+  const foundPools = keepPools ? { ...prev._pricePools.pools } : {};
+  const priceCache = {};
+  async function poolSides(pools, isPriced) {
+    if (!pools.length) return [];
+    const mc = await multicall(rpc, pools.flatMap(p => [{ to: p, data: sel("token0()") }, { to: p, data: sel("token1()") }]), head);
+    const out = [];
+    for (let i = 0; i < pools.length; i++) {
+      const a = mc.results[2 * i], b = mc.results[2 * i + 1];
+      if (!a.ok || !b.ok) continue;
+      const t0 = lc(addrAt(a.data, 0)), t1 = lc(addrAt(b.data, 0));
+      if (t1 === CH.usdc && isPriced(t0)) out.push({ pool: pools[i], token: t0, tokenIsToken0: true });
+      else if (t0 === CH.usdc && isPriced(t1)) out.push({ pool: pools[i], token: t1, tokenIsToken0: false });
     }
-    return (usdPoolCache[key] = found);
+    return out;
   }
-  // USDC per whole token, from the slot0 data of the token's USDC pool (dX = the token's decimals)
-  const usdFromSlot0 = (up, s0, dX) => {
-    if (!up) return null; if (up.usdc) return 1;
-    if (!s0) return null;
-    const p = Math.pow(1.0001, intAt(s0, 1)); // raw token1 per raw token0
-    return up.tokenIsToken0 ? p * Math.pow(10, dX - 6) : Math.pow(10, dX - 6) / p;
-  };
-  const aeroUsdFromSlot0 = s0 => s0 ? Math.pow(10, 18 - 6) / Math.pow(1.0001, intAt(s0, 1)) : null;
+  async function findPools(token) {
+    if (foundPools[token]) return foundPools[token];
+    const cs = [];
+    for (const F of CH.factories) for (const ts of CH.tickSpacings) cs.push({ to: F, data: sel("getPool(address,address,int24)") + pad(token) + pad(CH.usdc) + int24hex(ts) });
+    if (!cs.length) return [];
+    const mc = await multicall(rpc, cs, head);
+    return (foundPools[token] = [...new Set(mc.results.filter(r => r.ok && BigInt(r.data) !== 0n).map(r => lc(addrAt(r.data, 0))))]);
+  }
+  // candidate pools for a token, with its decimals: "usdc" for USDC itself
+  function candidatesFor(token, d) {
+    const key = lc(token);
+    if (key === CH.usdc) return Promise.resolve("usdc");
+    if (!priceCache[key]) priceCache[key] = findPools(key).then(ps => poolSides(ps, t => t === key)).then(cs => cs.map(c => ({ ...c, d })));
+    return priceCache[key];
+  }
+  const rewardDecimals = {};
+  function rewardCandidates() {
+    if (!priceCache._reward) priceCache._reward = (async () => {
+      const mc = await multicall(rpc, CH.rewardTokens.map(t => ({ to: t, data: sel("decimals()") })), head);
+      CH.rewardTokens.forEach((t, i) => { rewardDecimals[t] = mc.results[i].ok ? Number(word(mc.results[i].data, 0)) : 18; });
+      const isReward = t => CH.rewardTokens.includes(t);
+      const pools = CH.rewardPricePools.length ? CH.rewardPricePools : [...new Set((await Promise.all(CH.rewardTokens.map(findPools))).flat())];
+      return (await poolSides(pools, isReward)).map(c => ({ ...c, d: rewardDecimals[c.token] }));
+    })();
+    return priceCache._reward;
+  }
+  const priceCalls = (tag, cands) => (Array.isArray(cands) ? cands.flatMap((c, i) => [
+    { name: `${tag}${i}s`, to: c.pool, data: sel("slot0()") }, { name: `${tag}${i}l`, to: c.pool, data: sel("liquidity()") }]) : []);
+  // USDC per whole token from the deepest candidate in R (results named by priceCalls); null when none has liquidity
+  function pickPrice(R, tag, cands) {
+    if (cands === "usdc") return 1;
+    let best = null, bestL = 0n;
+    (cands || []).forEach((c, i) => {
+      const s0 = R[`${tag}${i}s`], l = R[`${tag}${i}l`];
+      if (!s0 || !s0.ok || !l || !l.ok) return;
+      const L = word(l.data, 0);
+      if (L > bestL) { bestL = L; best = { c, tick: intAt(s0.data, 1) }; }
+    });
+    if (!best) return null;
+    const p = Math.pow(1.0001, best.tick);        // raw token1 per raw token0
+    return best.c.tokenIsToken0 ? p * Math.pow(10, best.c.d - usdcDec) : Math.pow(10, best.c.d - usdcDec) / p;
+  }
+  async function namedCall(calls, b) {
+    const mc = await multicall(rpc, calls, b);
+    const R = {}; calls.forEach((c, i) => { R[c.name] = mc.results[i]; });
+    return R;
+  }
 
   // ---------------------------------------------------------------- discovery
   async function discoverStrategy(meta, strat) {
@@ -303,13 +352,15 @@ async function collectAll(rpcUrls, opts = {}) {
       }
     } else {
       for (const l of await getLogs(rpc, { address: m.vault, topics: [[T.rebV2, T.rebV1]] }, from, to)) add(l, "rebalance");
-      // harvests: the gauge's ClaimRewards to the strategy (the gauges before Aerodrome's 2026-10-22 deployment);
-      // for a strategy that sells AERO, also its own RewardSold, which does not depend on the gauge's events
-      // (the new gauges emit EmissionsClaimed instead)
+      // harvests: the configured gauge claim events to the strategy (ClaimRewards on the gauges before
+      // Aerodrome's 2026-10-22 deployment); for a strategy that sells AERO, its own RewardSold, which does not
+      // depend on the gauge's events (the new gauges emit EmissionsClaimed instead)
       const pairs = new Map();
       for (const [sa, s] of Object.entries(m.strategies)) if (s.gauge) pairs.set(s.gauge + ":" + sa, [s.gauge, sa]);
-      for (const [g, sa] of pairs.values()) for (const l of await getLogs(rpc, { address: g, topics: [T.claim, "0x" + pad(sa)] }, from, to)) add(l, "harvest");
+      if (CH.claimTopics.length) for (const [g, sa] of pairs.values()) for (const l of await getLogs(rpc, { address: g, topics: [CH.claimTopics, "0x" + pad(sa)] }, from, to)) add(l, "harvest");
       for (const [sa, s] of Object.entries(m.strategies)) if (s.rewardSale) for (const l of await getLogs(rpc, { address: sa, topics: [T.rewardSold] }, from, to)) add(l, "harvest");
+      // the controller's own record of each harvest: independent of the gauge and the reward token
+      if (CH.harvestTopic && m.controller) for (const l of await getLogs(rpc, { address: m.controller, topics: [CH.harvestTopic, "0x" + pad(m.vault)] }, from, to)) add(l, "harvest");
     }
     const byTx = {};
     for (const e of evs) { const cur = byTx[e.tx]; if (!cur || (e.kind !== "harvest" && cur.kind === "harvest")) byTx[e.tx] = e; }
@@ -327,9 +378,8 @@ async function collectAll(rpcUrls, opts = {}) {
   // One event: the state just before it (block b-1), just after it (block b), and its receipt.
   async function decompose(m, e) {
     const b = e.block;
-    const extra = [{ name: "aero", to: AERO_USDC_POOL, data: sel("slot0()") }];
-    if (m.usd0 && m.usd0.pool) extra.push({ name: "usd0", to: m.usd0.pool, data: sel("slot0()") });
-    if (m.usd1 && m.usd1.pool) extra.push({ name: "usd1", to: m.usd1.pool, data: sel("slot0()") });
+    const cr = await rewardCandidates(), c0 = await candidatesFor(m.token0, m.d0), c1 = await candidatesFor(m.token1, m.d1);
+    const extra = [...priceCalls("ar", cr), ...priceCalls("u0", c0), ...priceCalls("u1", c1)];
     const [stB, stA, rc] = await Promise.all([readState(m, b - 1, extra), readState(m, b), rpc("eth_getTransactionReceipt", [e.tx])]);
     const B = stateFrom(stB), A = stateFrom(stA);
     const rec = { kind: e.kind === "emergency" ? "rebalance" : e.kind, tx: e.tx, block: b, ts: stA.ts || tsOf(b), netPct: 0,
@@ -339,16 +389,17 @@ async function collectAll(rpcUrls, opts = {}) {
     const sRef = B.sp, pRef = Math.pow(10, d1 - d0) / (sRef * sRef); // token1 in token0, whole units, just before
     rec.priceRef = pRef; rec.tickBefore = B.tick; rec.tickAfter = A.tick;
     if (rec.kind === "rebalance") { rec.tickLo = A.lo; rec.tickHi = A.hi; }
-    const okData = (st, n) => (st.R[n] && st.R[n].ok ? st.R[n].data : null);
-    const aeroUsd = aeroUsdFromSlot0(okData(stB, "aero")) || 0;
-    let t0Usd = usdFromSlot0(m.usd0, okData(stB, "usd0"), d0);
-    if (t0Usd == null) { const t1Usd = usdFromSlot0(m.usd1, okData(stB, "usd1"), d1); if (t1Usd != null) t0Usd = t1Usd / pRef; }
-    const usdcToT0 = raw => lc(m.token0) === USDC ? raw / 1e6 : lc(m.token1) === USDC ? raw / 1e6 * pRef : (t0Usd ? raw / 1e6 / t0Usd : 0);
-    const strat = stB.strat || m.strat, gauge = (m.strategies[lc(strat)] || {}).gauge;
+    const aeroUsd = pickPrice(stB.R, "ar", cr) || 0;     // USDC per reward token, just before the event
+    let t0Usd = pickPrice(stB.R, "u0", c0);
+    if (t0Usd == null) { const t1Usd = pickPrice(stB.R, "u1", c1); if (t1Usd != null) t0Usd = t1Usd / pRef; }
+    const usdc = raw => raw / 10 ** usdcDec;
+    const usdcToT0 = raw => lc(m.token0) === CH.usdc ? usdc(raw) : lc(m.token1) === CH.usdc ? usdc(raw) * pRef : (t0Usd ? usdc(raw) / t0Usd : 0);
+    const strat = lc(stB.strat || m.strat);
     let aeroT0 = null, coll0 = 0, coll1 = 0, dec0 = 0, dec1 = 0, fc0 = null, fc1 = null, interestFeeT0 = 0;
     for (const l of (rc && rc.logs) || []) {
-      const t0 = l.topics[0], a = lc(l.address), fromStrat = a === lc(strat);
-      if (a === AERO && t0 === T.transfer && gauge && lc("0x" + l.topics[1].slice(26)) === gauge && lc("0x" + l.topics[2].slice(26)) === lc(strat)) rec.aeroClaimed += Number(BigInt(l.data)) / 1e18;
+      const t0 = l.topics[0], a = lc(l.address), fromStrat = a === strat;
+      // reward claimed: any configured reward token arriving at the strategy (from the gauge, or minted through a voter)
+      if (t0 === T.transfer && rewardDecimals[a] != null && l.topics.length === 3 && lc("0x" + l.topics[2].slice(26)) === strat && lc("0x" + l.topics[1].slice(26)) !== strat) rec.aeroClaimed += Number(BigInt(l.data)) / 10 ** rewardDecimals[a];
       if (t0 === T.collect) { coll0 += Number(word(l.data, 1)); coll1 += Number(word(l.data, 2)); }
       if (t0 === T.decrease) { dec0 += Number(word(l.data, 1)); dec1 += Number(word(l.data, 2)); }
       if (t0 === T.rewardSold && fromStrat) aeroT0 = (aeroT0 || 0) + usdcToT0(Number(word(l.data, 3)));
@@ -462,15 +513,15 @@ async function collectAll(rpcUrls, opts = {}) {
     }
     m.vault = entry.vault;
     if (entry.pool) m.pool = lc(entry.pool);
-    // strategy and gauge can change on a migration: read them on every refresh
-    const sraw = await callAt(m.vault, sel("strategy()"), head);
-    m.strat = sraw && isAddr(addrAt(sraw, 0)) ? lc(addrAt(sraw, 0)) : null;
+    // strategy, gauge and controller can change on a migration: read them on every refresh
+    const sc = await multicall(rpc, [{ to: m.vault, data: sel("strategy()") }, { to: m.vault, data: sel("controller()") }], head);
+    const addrOf = r => (r.ok && isAddr(addrAt(r.data, 0)) ? lc(addrAt(r.data, 0)) : null);
+    m.strat = addrOf(sc.results[0]); m.controller = addrOf(sc.results[1]);
     if (m.strat) await discoverStrategy(m, m.strat);
     if (same && pv.strat && isAddr(pv.strat)) await discoverStrategy(m, lc(pv.strat)).catch(() => {});
     const sInfo = (m.strat && m.strategies[m.strat]) || {};
     m.gauge = sInfo.gauge || null;
-    if (m.usd0 === undefined) m.usd0 = await usdPoolFor(m.token0);
-    if (m.usd1 === undefined) m.usd1 = await usdPoolFor(m.token1);
+    delete m.usd0; delete m.usd1;                              // price pools of the earlier build; now chosen per block
     delete m._feeRate;
 
     const birthTs = tsOf(m.birth);
@@ -530,8 +581,10 @@ async function collectAll(rpcUrls, opts = {}) {
     const last = tip || grid[grid.length - 1];
     if (last) {
       const valInT0 = (last.a0 + last.idle0) + (last.a1 + last.idle1) * last.priceT1inT0;
-      let p0 = usdFromSlot0(m.usd0, m.usd0 && m.usd0.pool ? await callAt(m.usd0.pool, sel("slot0()"), head) : null, m.d0);
-      if (p0 == null) { const p1 = usdFromSlot0(m.usd1, m.usd1 && m.usd1.pool ? await callAt(m.usd1.pool, sel("slot0()"), head) : null, m.d1); if (p1 != null) p0 = p1 / last.priceT1inT0; }
+      const c0 = await candidatesFor(m.token0, m.d0), c1 = await candidatesFor(m.token1, m.d1);
+      const R = await namedCall([...priceCalls("u0", c0), ...priceCalls("u1", c1)], head);
+      let p0 = pickPrice(R, "u0", c0);
+      if (p0 == null) { const p1 = pickPrice(R, "u1", c1); if (p1 != null) p0 = p1 / last.priceT1inT0; }
       if (p0 != null) tvlUsd = valInT0 * p0;
     }
 
@@ -589,6 +642,7 @@ async function collectAll(rpcUrls, opts = {}) {
     gridFilled: sum(v => v.gridFilled), gridTotal: sum(v => v.gridTotal),
     eventsWithPrices: sum(v => v.events.filter(e => e.tickBefore != null).length), events: sum(v => v.events.length),
   };
+  out._pricePools = { block: keepPools ? prev._pricePools.block : head, config: JSON.stringify(CH), pools: foundPools };
   out._rpcCalls = calls();
   out._incremental = !!prev;
   return out;
