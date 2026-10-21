@@ -35,23 +35,27 @@
     return i0 < n && i1 >= i0 ? [i0, i1] : null;
   }
 
-  // Daily volatility of the pool price from non-overlapping 4-hour log moves between grid samples.
+  // Daily volatility of the pool price from its 4-hour log moves between grid samples: one move starting
+  // at every sample (overlapping), so the answer does not depend on where the 4-hour steps fall against
+  // a market's opening hour. n is the number of whole 4-hour periods covered.
   function dailyVol(a, t0, t1, stepSec) {
     const H4 = 4 * 3600, tol = Math.max(90, (stepSec || 3600) / 10);
     const sp = span(a, t0, t1); if (!sp) return null;
     const r = [];
-    let i = sp[0], j = sp[0];
-    while (i <= sp[1]) {
+    let j = sp[0];
+    for (let i = sp[0]; i <= sp[1]; i++) {
+      if (a.isTip(i)) continue;
       const target = a.t[i] + H4;
+      if (j < i) j = i;
       while (j <= sp[1] && a.t[j] < target - tol) j++;
       if (j > sp[1]) break;
-      if (Math.abs(a.t[j] - target) <= tol && !a.isTip(j)) { r.push(Math.log(price(a, j) / price(a, i))); i = j; }
-      else { i = j; }                       // a gap: restart the 4-hour step from the next sample
+      if (Math.abs(a.t[j] - target) <= tol && !a.isTip(j)) r.push(Math.log(price(a, j) / price(a, i)));
     }
-    if (r.length < 6) return null;
+    const n = r.length * Math.min(1, (stepSec || 3600) / H4);
+    if (n < 6) return null;
     const mean = r.reduce((s, x) => s + x, 0) / r.length;
     const v = r.reduce((s, x) => s + (x - mean) ** 2, 0) / (r.length - 1);
-    return { pct: Math.sqrt(v * 6) * 100, n: r.length };
+    return { pct: Math.sqrt(v * 6) * 100, n: Math.round(n) };
   }
 
   // share of [tA, tB] the parked vault held a position, from its samples and its enter/exit events
