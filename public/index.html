@@ -68,8 +68,9 @@ h1{font-size:clamp(1.5rem,3.5vw,2.1rem);margin:0;font-weight:800;letter-spacing:
 .up{color:var(--up)} .down{color:var(--down)}
 .bigsub{font-size:.72rem;color:var(--muted);margin:.25rem 0 .55rem}
 .bigsub b{font-family:"IBM Plex Mono",monospace;font-weight:600}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:.18rem .7rem;font-size:.74rem;line-height:1.35}
-.kv .k{color:var(--muted)} .kv .v{font-family:"IBM Plex Mono",monospace;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv{display:grid;grid-template-columns:1fr auto auto;gap:.18rem .75rem;font-size:.74rem;line-height:1.35}
+.kv .k{color:var(--muted);min-width:0} .kv .v{font-family:"IBM Plex Mono",monospace;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv .v.y{min-width:3.6rem} .kv .v.wide{grid-column:2/-1} .kv .v.h{font:600 .6rem "IBM Plex Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .kv .sep{grid-column:1/-1;border-top:1px solid var(--rule-2);margin:.2rem 0}
 .chartcard{background:var(--surface);border:1px solid var(--rule);border-radius:.6rem;padding:1rem 1.1rem 1.1rem;margin-bottom:1.1rem;box-shadow:var(--shadow);min-width:0}
 @media (max-width:640px){.chartcard{padding:.85rem .7rem .9rem}}
@@ -316,29 +317,32 @@ function renderCards(g) {
     const card = document.createElement('div'); card.className = 'mcard'; card.style.setProperty('--arm', cssv(a.color));
     if (!w) { card.innerHTML = `<div class="arm"><span class="dot"></span>${a.name}</div><div class="empty">No samples in this timeframe.</div>`; el.appendChild(card); return; }
     const rows = [];
-    const row = (k, v) => rows.push(`<span class="k">${k}</span><span class="v">${v}</span>`);
+    // three columns: what, change over the view, the same as a yearly rate
+    const yr = x => x == null || !isFinite(x) ? '' : `<span class="${cls(x)}">${(x >= 0 ? '+' : '&minus;') + (Math.abs(x) >= 100 ? Math.abs(x).toFixed(0) : Math.abs(x).toFixed(1))}%</span>`;
+    const row = (k, x, apr) => rows.push(`<span class="k">${k}</span><span class="v">${x == null ? '&ndash;' : `<span class="${cls(x)}">${pct(x)}</span>`}</span><span class="v y">${yr(apr)}</span>`);
+    const info = (k, v) => rows.push(`<span class="k">${k}</span><span class="v wide">${v}</span>`);
     const sep = () => rows.push('<span class="sep"></span>');
-    const pv = (x, apr) => `<span class="${cls(x)}">${pct(x)}</span>${apr != null ? ' <span class="mut">' + aprTxt(apr) + '</span>' : ''}`;
+    rows.push('<span class="k"></span><span class="v h">change</span><span class="v h">a year</span>');
     if (a.ppsUnit === 'L' && a.design !== 'V3') {
-      row('share price, booked', pv(w.booked));
-      if (w.notBooked != null) row('not yet booked in range', `<span class="${cls(w.notBooked)}">${pct(w.notBooked)}</span>`);
-      row('marked', pv(w.marked, w.apr.marked));
-    } else row('marked (vs 50/50 kept)', pv(w.marked, w.apr.marked));
+      row('booked', w.booked, w.apr.booked);
+      if (w.notBooked != null) row('not booked yet', w.notBooked, null);
+      row('marked', w.marked, w.apr.marked);
+    } else row('marked', w.marked, w.apr.marked);
     sep();
-    row('AERO', w.split ? pv(w.aero) : '&ndash;');
-    row('swap fees', w.split ? pv(w.fee) : '&ndash;');
-    if (w.lending != null) row('lending', pv(w.lending));
-    row(a.design === 'parked' ? 'cost of keeper moves' : 'cost at rebalances', pv(w.costReb));
-    if (Math.abs(w.costHarv) >= 0.005) row('cost at harvests', pv(w.costHarv));
+    row('AERO', w.split ? w.aero : null, w.split ? w.apr.aero : null);
+    row('swap fees', w.split ? w.fee : null, w.split ? w.apr.fee : null);
+    if (w.lending != null) row('lending', w.lending, w.apr.lending);
+    row(a.design === 'parked' ? 'keeper move cost' : 'rebalance cost', w.costReb, w.apr.costReb);
+    if (Math.abs(w.costHarv) >= 0.005) row('harvest cost', w.costHarv, null);
     sep();
     const counts = a.design === 'parked'
       ? `${w.nEnter} in &middot; ${w.nExit} out &middot; ${w.nReplace} moved`
       : `${w.nReb} rebalances &middot; ${w.nHarv} harvests`;
-    row('events', counts);
-    if (a.design === 'parked') row('in the pool', w.inPool != null ? w.inPool.toFixed(0) + '% of the time' : '&ndash;');
-    else row('in range', w.inRange != null ? w.inRange.toFixed(0) + '% of hourly samples' : '&ndash;');
-    row(whole ? 'age' : 'timeframe', days(w.days) + (a.tvlUsd != null ? ' &middot; $' + a.tvlUsd.toFixed(0) : ''));
-    card.innerHTML = `<div class="arm"><span class="dot"></span>${a.name}<span class="tag">${designTag(a)}</span>${a.widthPct != null && a.label ? '<span class="tag">' + a.widthPct.toFixed(2) + '%</span>' : ''}</div>
+    info('events', counts);
+    if (a.design === 'parked') info('in the pool', w.inPool != null ? w.inPool.toFixed(0) + '% of the time' : '&ndash;');
+    else info('in range', w.inRange != null ? w.inRange.toFixed(0) + '% of hourly samples' : '&ndash;');
+    info(whole ? 'age' : 'timeframe', days(w.days) + (a.tvlUsd != null ? ' &middot; $' + a.tvlUsd.toFixed(0) : ''));
+    card.innerHTML = `<div class="arm"><span class="dot"></span>${a.name}<span class="tag">${designTag(a)}</span>${a.widthPct != null && a.label && a.label !== a.widthPct.toFixed(2) + '%' ? '<span class="tag">' + a.widthPct.toFixed(2) + '%</span>' : ''}</div>
       <div class="big ${cls(w.vsHold)}">${pct(w.vsHold)}</div>
       <div class="bigsub">vs holding 50/50${w.apr.vsHold != null ? ' &middot; <b class="' + cls(w.apr.vsHold) + '">' + aprTxt(w.apr.vsHold) + '</b>' : ''}</div>
       <div class="kv">${rows.join('')}</div>`;
