@@ -56,7 +56,7 @@ function buildChain(opts = {}) {
   const rallyFrom = Math.floor(tsAt(birthA) / 86400 + 5) * 86400 + 9 * 3600;
   for (let k = 1; k <= Math.ceil((head - from) / 450) + 2; k++) {
     const t = tsAt(from + k * 450);
-    W.push(W[k - 1] + normal() * (opts.tickVol || 60) + (t >= rallyFrom && t < rallyFrom + 5 * 3600 ? 80 : 0));
+    W.push(W[k - 1] + normal() * (opts.tickVol || 60) + (opts.rally !== false && t >= rallyFrom && t < rallyFrom + 5 * 3600 ? 80 : 0));
   }
   const tickAt = b => { const x = (b - from) / 450, k = Math.max(0, Math.min(W.length - 2, Math.floor(x))); return Math.round(W[k] + (W[k + 1] - W[k]) * (x - k)); };
   const sOf = b => Math.pow(1.0001, tickAt(b) / 2);

@@ -348,7 +348,7 @@ function renderCards(g) {
 
 // ---------------------------------------------------------------------------------------- chart kit
 function niceTicks(min, max, n) { const span = max - min || 1; const step = Math.pow(10, Math.floor(Math.log10(span / n))); const err = span / n / step; const m = err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1; const s = m * step; const out = []; for (let x = Math.ceil(min / s) * s; x <= max + 1e-9; x += s) out.push(Math.abs(x) < s * 1e-9 ? 0 : x); return out; }
-const TSTEPS = [3600, 3 * 3600, 6 * 3600, 12 * 3600, DAY, 2 * DAY, 7 * DAY, 14 * DAY, 30 * DAY, 61 * DAY];
+const TSTEPS = [3600, 3 * 3600, 6 * 3600, 12 * 3600, DAY, 2 * DAY, 3 * DAY, 7 * DAY, 14 * DAY, 30 * DAY, 61 * DAY];
 function timeTicks(t0, t1, width) {
   const want = Math.max(2, Math.floor(width / 85)); const span = t1 - t0;
   let step = TSTEPS.find(s => span / s <= want) || TSTEPS[TSTEPS.length - 1];
@@ -661,7 +661,7 @@ function renderEcon(g) {
     series.forEach(s => { if (!s.pts.length || t < s.pts[0].t) return; const i = before(s.ts, t); rows += trow(cssv(s.a.color), s.a.name, pct(s.pts[Math.max(0, i)].y, 3)); });
     return rows;
   });
-  leg.innerHTML = series.map((s, i) => { const tr = trends[i]; const last = s.pts.filter(p => p.t <= t1).pop(); return `<span style="--c:${cssv(s.a.color)}"><span class="sw"></span>${s.a.name}${last ? ' <span class="apr">' + pct(last.y) + (tr ? ' &middot; trend ' + aprTxt(tr.apr) : '') + '</span>' : ''}</span>`; }).join('');
+  leg.innerHTML = series.map((s, i) => { const tr = trends[i]; const last = s.pts.filter(p => p.t <= t1).pop(); return `<span style="--c:${cssv(s.a.color)}"><span class="sw"></span>${s.a.name}${last ? ' <span class="apr">' + pct(last.y) + (tr ? ' &middot; trend ' + aprTxt(tr.apr) : '') + '</span>' : key === 'lend' && !s.a.lend ? ' <span class="apr">does not lend</span>' : ''}</span>`; }).join('');
   const H = {
     net: 'every event’s effect on the share price, added up from the start of the view (and lending income for the parked vault)',
     aero: 'AERO sold or claimed, after the protocol fee, as % of the vault’s value at each event',
@@ -680,7 +680,7 @@ function renderTable(g) {
   g.arms.forEach(a => a.ev.forEach(e => { if (e.ts >= t0 - 1 && e.ts <= t1 + 1) rows.push({ e, a }); }));
   rows.sort((x, y) => y.e.ts - x.e.ts);
   if (!rows.length) { host.innerHTML = '<div class="empty">No rebalances or harvests in this timeframe.</div>'; $('events-hint').textContent = ''; return; }
-  const cell = (x, c) => x == null ? '<span class="mut">&ndash;</span>' : Math.abs(x) < 5e-5 ? '<span class="mut">0</span>' : `<span class="${c || (x >= 0 ? 'pos' : 'neg')}">${(x >= 0 ? '+' : '&minus;') + Math.abs(x).toFixed(3)}%</span>`;
+  const cell = (x, c) => x == null ? '<span class="mut">&ndash;</span>' : Math.abs(x) < 5e-6 ? '<span class="mut">0</span>' : `<span class="${c || (x >= 0 ? 'pos' : 'neg')}">${(x >= 0 ? '+' : '&minus;') + Math.abs(x).toFixed(Math.abs(x) < 0.001 ? 4 : 3)}%</span>`;
   const shown = rows.slice(0, 300);
   host.innerHTML = `<div class="etable"><table><thead><tr><th>Time (UTC)</th><th>Vault</th><th>What</th><th>AERO</th><th>Swap fees</th><th>Cost</th><th>Net</th></tr></thead><tbody>`
     + shown.map(({ e, a }) => `<tr><td class="mut">${utc(e.ts)}</td><td><span class="armdot" style="background:${cssv(a.color)}"></span>${a.name}</td><td>${KIND[e.kind] || e.kind}</td><td>${cell(e.aero, 'pos')}</td><td>${cell(e.fee, 'pos')}</td><td>${cell(e.cost, 'neg')}</td><td>${cell(e.net)}</td></tr>`).join('')

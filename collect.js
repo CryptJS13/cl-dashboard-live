@@ -531,7 +531,9 @@ async function collectAll(rpcUrls, opts = {}) {
     const names = deriveNames(entry, m, widthPct);
     const keep = s => !startTs || s.ts >= startTs;
     const series = grid.filter(keep).concat(tip && keep(tip) ? [{ ...tip, tip: true }] : []);
-    const gridMissing = backfillOrder(K, new Set(grid.map(s => s.k)), {}, GRID, 1).length;
+    // hours still to read; an hour that failed MAXFAILS times (e.g. before the vault was set up) is left as a gap
+    const gridMissing = backfillOrder(K, new Set(grid.map(s => s.k)), failed, GRID, MAXFAILS).length;
+    const gridUnreadable = Object.values(failed).filter(n => n >= MAXFAILS).length;
     const { _feeRate, ...meta } = m;
     return {
       id: entry.id, vault: entry.vault, pool: m.pool, pair: names.pair, platform: names.platform, label: names.label,
@@ -540,15 +542,20 @@ async function collectAll(rpcUrls, opts = {}) {
       widthTicks: m.widthTicks, widthPct, birth: m.birth, birthTs, startTs: startTs || null, strat: m.strat, gauge: m.gauge,
       lending: m.design === "parked" ? { pool: sInfo.lendingPool || null, aToken0: sInfo.aToken0 || null, aToken1: sInfo.aToken1 || null } : undefined,
       series, rebalances: events.filter(e => e.kind !== "harvest").map(e => ({ block: e.block, ts: e.ts })),
-      events, usdcQuote: true, scannedTo, gridSeconds: GRID, gridFilled: grid.length, gridTotal: K + 1, gridMissing,
+      events, usdcQuote: true, scannedTo, gridSeconds: GRID, gridFilled: grid.length, gridTotal: K + 1 - gridUnreadable, gridMissing, gridUnreadable,
       _schema3: true, _gridSeconds: GRID, _gridStart: gridStart, _failed: failed, _meta: meta,
     };
   }
 
-  // grid reads are shared out among the vaults that still have missing hours
-  const missingBefore = e => { const pv = prevById[e.id]; return pv && pv._schema3 && lc(pv.vault) === e.vault ? (pv.gridMissing != null ? pv.gridMissing : 1) : 1e9; };
-  const needy = entries.filter(e => missingBefore(e) > 0).length || 1;
-  const perVault = Math.ceil(BACKFILL / needy), perVaultEnrich = Math.ceil(ENRICH / Math.max(1, entries.length));
+  // the per-refresh budgets are shared out in proportion to what each vault still lacks
+  const gridNeed = e => {
+    const pv = prevById[e.id];
+    if (pv && pv._schema3 && lc(pv.vault) === e.vault && pv._gridSeconds === GRID) return pv.gridMissing || 0;
+    return pv && pv.birth ? Math.max(1, (headTs - tsOf(pv.birth)) / GRID) : 24 * 30;
+  };
+  const enrichNeed = e => { const pv = prevById[e.id]; return pv && Array.isArray(pv.events) ? pv.events.filter(x => x.tickBefore == null).length : 0; };
+  const share = (need, budget) => { const total = entries.reduce((s, e) => s + need(e), 0); return e => (total > 0 ? Math.ceil(budget * need(e) / total) : 0); };
+  const gridShare = share(gridNeed, BACKFILL), enrichShare = share(enrichNeed, ENRICH);
 
   const CONC = Math.max(1, opts.concurrency || 4);
   const results = new Array(entries.length).fill(null);
@@ -558,7 +565,7 @@ async function collectAll(rpcUrls, opts = {}) {
       const i = next++;
       if (i >= entries.length) return;
       const e = entries[i];
-      try { results[i] = await collectVault(e, perVault, perVaultEnrich); }
+      try { results[i] = await collectVault(e, gridShare(e), enrichShare(e)); }
       catch (err) {
         log(`collect ${e.id} failed: ${err.message}`);
         const pv = prevById[e.id];
