@@ -266,7 +266,7 @@ function buildChain(opts = {}) {
     const blkOf = tag => tag === "latest" ? head : parseInt(tag, 16);
     switch (method) {
       case "eth_blockNumber": return "0x" + head.toString(16);
-      case "eth_getBlockByNumber": return { timestamp: "0x" + tsOf(blkOf(params[0])).toString(16) };
+      case "eth_getBlockByNumber": { const bk = blkOf(params[0]); return { number: "0x" + bk.toString(16), timestamp: "0x" + tsOf(bk).toString(16) }; }
       case "eth_getCode": { const bk = blkOf(params[1]), a2 = lc(params[0]); if ((a2 === ADDR.VA && bk >= birthA) || (a2 === ADDR.VB && bk >= birthB)) return "0x6080"; return "0x"; }
       case "eth_call": {
         const { to, data } = params[0], bk = blkOf(params[1]);

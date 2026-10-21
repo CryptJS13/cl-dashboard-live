@@ -27,7 +27,7 @@ function isRangeError(err) {
 function makeRpc(urls, opts = {}) {
   const list = (Array.isArray(urls) ? urls : String(urls).split(",")).map(u => u.trim()).filter(Boolean);
   if (!list.length) throw new Error("no RPC URL");
-  const maxRetries = opts.maxRetries != null ? opts.maxRetries : 7;
+  const maxRetries = opts.maxRetries != null ? opts.maxRetries : 10;   // about a minute and a half of backing off
   const maxInFlight = Math.max(1, opts.inFlight || 8);
   const counter = opts.counter || { n: 0 };
   const timeoutMs = opts.timeoutMs || 30000;
@@ -54,35 +54,33 @@ function makeRpc(urls, opts = {}) {
     } finally { clearTimeout(timer); }
   }
 
-  // endpoints that refused a method (not offered, or a log range too wide for them): later calls of that
-  // method go to the others
-  const refused = {};
-  const pick = method => {
-    const bad = refused[method];
-    if (bad && bad.size && bad.size < list.length) {
-      for (let i = 0; i < list.length; i++) { const u = list[turn++ % list.length]; if (!bad.has(u)) return u; }
-    }
-    return list[turn++ % list.length];
+  // endpoints that do not offer a method are skipped for it; an endpoint that refused a log query as too
+  // wide is skipped for log queries at least that wide (public nodes allow 10 to 10,000 blocks)
+  const unsupported = {}, refusedSpan = {};
+  const spanOf = (method, params) => method === "eth_getLogs" && params[0] ? parseInt(params[0].toBlock, 16) - parseInt(params[0].fromBlock, 16) : 0;
+  const usable = (url, method, span) => !(unsupported[method] && unsupported[method].has(url)) && !(method === "eth_getLogs" && refusedSpan[url] != null && span >= refusedSpan[url]);
+  const pick = (method, span) => {
+    for (let i = 0; i < list.length; i++) { const u = list[turn++ % list.length]; if (usable(u, method, span)) return u; }
+    return null;
   };
-  const rpc = async (method, params = []) => {
+  // o.retries: fewer retries for a call the caller can recover from another way (a wide log scan splits)
+  const rpc = async (method, params = [], o = {}) => {
+    const retries = o.retries != null ? o.retries : maxRetries;
     await acquire();
     try {
+      const span = spanOf(method, params);
       for (let attempt = 0; ; attempt++) {
+        const url = pick(method, span);
+        if (!url) throw new Error(method === "eth_getLogs" ? `eth_getLogs: block range ${span} too large for every endpoint` : `${method}: not offered by any endpoint`);
         counter.n++;
-        const url = pick(method);
         try { return await once(url, method, params); }
         catch (e) {
           const msg = String(e.message || e);
-          const unsupported = /not supported|method not found|-32601|not available|not allowed|disabled/i.test(msg);
-          const tooWide = method === "eth_getLogs" && isRangeError(e) && !/429|rate/i.test(msg);
-          if (list.length > 1 && (unsupported || tooWide)) {
-            (refused[method] = refused[method] || new Set()).add(url);
-            // when every endpoint has refused, the caller decides (a log scan then splits its range)
-            if (refused[method].size >= list.length || attempt >= maxRetries) throw e;
-            continue;
-          }
-          if (tooWide) throw e;
-          if (attempt >= maxRetries || !isTransient(e)) throw e;
+          const tooWide = method === "eth_getLogs" && isRangeError(e) && !/429|rate|request limit/i.test(msg);
+          const notOffered = !tooWide && /not supported|method not found|-32601|not available|disabled/i.test(msg);
+          if (notOffered) { (unsupported[method] = unsupported[method] || new Set()).add(url); if (list.length > 1) continue; }
+          if (tooWide) { refusedSpan[url] = Math.min(refusedSpan[url] != null ? refusedSpan[url] : Infinity, span); if (list.length > 1) continue; throw e; }
+          if (attempt >= retries || !isTransient(e)) { e.message = `${method}: ${msg}`; throw e; }
           const backoff = Math.min(8000, 250 * 2 ** attempt) + Math.floor(Math.random() * 250);
           await sleep(list.length > 1 && attempt === 0 ? 50 : backoff);
         }
@@ -108,13 +106,17 @@ async function multicall(rpc, calls, block) {
   return { ts, results: res.slice(1).map(r => ({ ok: r.success && r.returnData && r.returnData !== "0x", data: r.returnData })) };
 }
 
-// eth_getLogs over [from, to], halving the range whenever a node refuses it as too large.
+// eth_getLogs over [from, to]. A range a node refuses as too large is halved; so is any range over WIDE
+// blocks that still fails after a couple of tries (some nodes answer a heavy query with a rate limit, and
+// a narrower range may suit other endpoints). Only narrow ranges get the full series of retries.
+const WIDE = 1000;
 async function getLogs(rpc, filter, from, to, minSpan = 500) {
   if (from > to) return [];
+  const wide = to - from > WIDE;
   try {
-    return await rpc("eth_getLogs", [{ ...filter, fromBlock: hexBlock(from), toBlock: hexBlock(to) }]);
+    return await rpc("eth_getLogs", [{ ...filter, fromBlock: hexBlock(from), toBlock: hexBlock(to) }], wide ? { retries: 2 } : {});
   } catch (e) {
-    if (to - from < minSpan || !isRangeError(e)) throw e;
+    if (to - from < minSpan || !(isRangeError(e) || wide)) throw e;
     const mid = from + Math.floor((to - from) / 2);
     const a = await getLogs(rpc, filter, from, mid, minSpan);
     const b = await getLogs(rpc, filter, mid + 1, to, minSpan);

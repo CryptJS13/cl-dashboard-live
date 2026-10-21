@@ -107,9 +107,13 @@ async function collectAll(rpcUrls, opts = {}) {
   const prevById = {}; for (const pv of (prev && prev.vaults) || []) prevById[pv.id] = pv;
   const legacyHead = prevSchema === 2 ? prev.generatedAtBlock : null;
 
-  const head = parseInt(await rpc("eth_blockNumber"), 16);
-  const headBlk = await rpc("eth_getBlockByNumber", ["0x" + head.toString(16), false]);
-  const headTs = Number(BigInt(headBlk.timestamp));
+  // the head is read as the latest block itself (number and time in one answer) and taken 3 blocks (6 s)
+  // back, so that every endpoint in rotation already has it
+  const latest = await rpc("eth_getBlockByNumber", ["latest", false]);
+  if (!latest || !latest.number) throw new Error("eth_getBlockByNumber(latest) returned nothing");
+  const LAG = 3;
+  const head = parseInt(latest.number, 16) - LAG;
+  const headTs = Number(BigInt(latest.timestamp)) - BLOCK_SECONDS * LAG;
   const genesisTs = headTs - BLOCK_SECONDS * head;
   if (genesisTs !== GENESIS_TS) log(`note: head block ${head} is ${genesisTs - GENESIS_TS}s off the 2-second schedule; using the head for the block/time map`);
   const blockAt = ts => Math.max(1, Math.ceil((ts - genesisTs) / BLOCK_SECONDS));
